@@ -1,0 +1,30 @@
+{
+  "name": "@juicebag-mail/agent-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@juicebag-mail/shared": "workspace:*",
+    "@x402-avm/avm": "^2.6.1",
+    "@x402-avm/core": "^2.6.1",
+    "@x402-avm/fetch": "^2.6.1",
+    "algosdk": "^3.2.0",
+    "better-sqlite3": "^12.1.1",
+    "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.12.9",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.15.30",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

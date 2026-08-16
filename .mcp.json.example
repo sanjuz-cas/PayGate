@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "juicebag-mail": {
+      "command": "npx",
+      "args": ["tsx", "apps/juicebag-mcp/src/index.ts"],
+      "env": {
+        "AGENT_API_URL": "http://localhost:4022",
+        "VITE_AGENT_UI_TOKEN": "juicebag-agent-ui-demo-token"
+      }
+    }
+  }
+}
