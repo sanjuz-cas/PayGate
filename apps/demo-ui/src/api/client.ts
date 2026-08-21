@@ -82,6 +82,40 @@ export const api = {
       body: JSON.stringify({ letterId, currency }),
     });
   },
+  getSpendStatus() {
+    return request<{ guardrail: import("@juicebag-mail/shared").AgentGuardrail; recentSpendLogs: any[] }>(`${agentApiUrl}/spend`, {
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+      },
+    });
+  },
+  getAutonomyDecisions() {
+    return request<{ decisions: import("@juicebag-mail/shared").AutonomyDecision[]; autonomousUnlockEnabled: boolean }>(`${agentApiUrl}/autonomy/decisions`, {
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+      },
+    });
+  },
+  setDailyCap(dailyCapUsdc: number) {
+    return request<{ success: boolean; guardrail: import("@juicebag-mail/shared").AgentGuardrail }>(`${agentApiUrl}/actions/set-cap`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ dailyCapUsdc }),
+    });
+  },
+  evaluateLetter(input: { letterId?: string; from?: string; envelopeSummary?: string }) {
+    return request<{ decision: import("@juicebag-mail/shared").AutonomyDecision }>(`${agentApiUrl}/actions/evaluate-letter`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  },
   ignoreLetter(letterId: string) {
     return request<AgentState>(`${agentApiUrl}/actions/ignore-letter`, {
       method: "POST",

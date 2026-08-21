@@ -169,6 +169,38 @@ server.registerTool(
   },
 );
 
+server.registerTool(
+  "get_spend_status",
+  {
+    description: "Return current cumulative spend, daily guardrail cap, remaining budget, and recent spend logs.",
+  },
+  async () => {
+    return asTextResult(await request("/spend"));
+  },
+);
+
+server.registerTool(
+  "evaluate_inbound_letter",
+  {
+    description: "Run autonomous decision engine on an inbound letter to evaluate if it should be unlocked, ignored, or deferred.",
+    inputSchema: {
+      letterId: z.string().describe("Inbound letter id"),
+      fromName: z.string().optional().describe("Sender name if evaluating prospective letter"),
+      envelopeSummary: z.string().optional().describe("Envelope summary/subject preview"),
+    },
+  },
+  async (args) => {
+    const result = await request("/actions/evaluate-letter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(args),
+    });
+    return asTextResult(result);
+  },
+);
+
 const transport = new StdioServerTransport();
 
 await server.connect(transport);

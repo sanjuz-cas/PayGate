@@ -19,6 +19,19 @@ const envSchema = z.object({
   ALGOD_MAINNET_URL: z.string().url().default(ALGOD_MAINNET_URL),
   AGENT_MNEMONIC: z.string().optional(),
   AVM_MNEMONIC: z.string().optional(),
+  AGENT_DAILY_CAP_USDC: z.coerce.number().positive().default(5.0),
+  AUTONOMOUS_UNLOCK_ENABLED: z
+    .preprocess((val) => (val === "false" || val === false ? false : true), z.boolean())
+    .default(true),
+  AUTONOMOUS_PRIORITY_KEYWORDS: z
+    .string()
+    .default("tax,invoice,urgent,landlord,government,official,court,bank,security,notice,receipt,bill"),
+  AUTONOMOUS_SKIP_KEYWORDS: z
+    .string()
+    .default("promo,promotion,lottery,marketing,advertisement,newsletter,discount,special offer,free gift,casino,spam,deal"),
+  AUTONOMOUS_ALLOWLIST_SENDERS: z
+    .string()
+    .default("Tax Office,Landlord,City Government,Bürgeramt,Finanzamt,Bank,State Revenue,City Tax Office"),
 });
 
 export type AgentEnv = z.infer<typeof envSchema> & {

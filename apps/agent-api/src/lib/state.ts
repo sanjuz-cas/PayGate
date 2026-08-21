@@ -13,6 +13,8 @@ import {
 } from "../db/schema.js";
 import type { AgentEnv } from "./env.js";
 import { getCachedAgentBalances } from "./balances.js";
+import { getSpendStatus } from "./guardrail.js";
+import { getRecentAutonomyDecisions } from "./autonomy.js";
 
 export function parseLegalIdentity(value: string) {
   return JSON.parse(value) as Address;
@@ -22,12 +24,14 @@ export async function buildAgentState(input: {
   db: AgentDatabase;
   env: AgentEnv;
 }): Promise<AgentState> {
-  const [regRows, inboundRows, outboundRows, paymentRows, eventRows] = await Promise.all([
+  const [regRows, inboundRows, outboundRows, paymentRows, eventRows, guardrail, recentDecisions] = await Promise.all([
     input.db.select().from(registration).where(eq(registration.id, 1)).limit(1),
     input.db.select().from(inboundLetters).orderBy(desc(inboundLetters.createdAt)),
     input.db.select().from(outboundLetters).orderBy(desc(outboundLetters.createdAt)),
     input.db.select().from(payments).orderBy(desc(payments.createdAt)).limit(20),
     input.db.select().from(events).orderBy(desc(events.createdAt)).limit(1),
+    getSpendStatus(input.db, input.env),
+    getRecentAutonomyDecisions(input.db, 10),
   ]);
 
   const reg = regRows[0] ?? null;
@@ -52,6 +56,8 @@ export async function buildAgentState(input: {
       eurd: balances.eurd,
       address: balances.address,
     },
+    guardrail,
+    recentAutonomyDecisions: recentDecisions,
     inboundLetters: inboundRows.map((row) => ({
       id: row.id,
       mailboxId: row.mailboxId,

@@ -51,6 +51,27 @@ export type AgentEvent =
     }
   | {
       id: string;
+      type: "budget_blocked";
+      createdAt: string;
+      message: string;
+      routeKey?: string;
+      requestedAmount?: number;
+      currentSpend?: number;
+      cap?: number;
+    }
+  | {
+      id: string;
+      type: "autonomy_decision";
+      createdAt: string;
+      message: string;
+      letterId?: string;
+      fromName?: string;
+      decision?: "unlock" | "ignore" | "defer";
+      reason?: string;
+      confidence?: number;
+    }
+  | {
+      id: string;
       type: "x402.info";
       createdAt: string;
       message: string;

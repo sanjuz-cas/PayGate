@@ -188,6 +188,24 @@ export const webhookDeliverySchema = z.object({
   lastAttemptAt: z.string().nullable(),
 });
 
+export const agentGuardrailSchema = z.object({
+  dailyCapUsdc: z.number(),
+  currentSpendUsdc: z.number(),
+  remainingUsdc: z.number(),
+  blocked: z.boolean(),
+  window: z.string().default("24h"),
+});
+
+export const autonomyDecisionSchema = z.object({
+  letterId: z.string(),
+  fromName: z.string(),
+  envelopeSummary: z.string(),
+  decision: z.enum(["unlock", "ignore", "defer"]),
+  reason: z.string(),
+  confidence: z.number().default(1),
+  evaluatedAt: z.string(),
+});
+
 export const agentStateSchema = z.object({
   registration: z
     .object({
@@ -201,6 +219,8 @@ export const agentStateSchema = z.object({
     })
     .nullable(),
   balances: agentBalancesSchema,
+  guardrail: agentGuardrailSchema.optional(),
+  recentAutonomyDecisions: z.array(autonomyDecisionSchema).default([]),
   inboundLetters: z.array(
     inboundLetterMetadataSchema.extend({
       agentStatus: z.enum(agentInboundStatuses),
@@ -269,6 +289,8 @@ export type RegistrationRequest = z.infer<typeof registrationRequestSchema>;
 export type RegistrationResponse = z.infer<typeof registrationResponseSchema>;
 export type ServiceState = z.infer<typeof serviceStateSchema>;
 export type WebhookDeliveryRecord = z.infer<typeof webhookDeliverySchema>;
+export type AgentGuardrail = z.infer<typeof agentGuardrailSchema>;
+export type AutonomyDecision = z.infer<typeof autonomyDecisionSchema>;
 export type InternalInboundLetterScanExtractResponse = z.infer<
   typeof internalInboundLetterScanExtractResponseSchema
 >;

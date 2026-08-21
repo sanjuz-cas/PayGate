@@ -6,11 +6,61 @@ import type { AgentDatabase } from "../db/index.js";
 import type { AgentEvent } from "@juicebag-mail/shared";
 
 type Listener = (event: AgentEvent) => void;
-type PublishableEvent = {
-  type: AgentEvent["type"];
-  message: string;
-  txid?: string;
-  network?: string;
+type PublishableEvent = (
+  | {
+      type: "registration.completed";
+      message: string;
+      txid?: string;
+      network?: string;
+    }
+  | {
+      type: "letter.sent";
+      message: string;
+      txid?: string;
+      network?: string;
+    }
+  | {
+      type: "letter.unlocked";
+      message: string;
+      txid?: string;
+      network?: string;
+    }
+  | {
+      type: "letter.ignored";
+      message: string;
+      network?: string;
+    }
+  | {
+      type: "webhook.received";
+      message: string;
+      network?: string;
+    }
+  | {
+      type: "budget_blocked";
+      message: string;
+      routeKey?: string;
+      requestedAmount?: number;
+      currentSpend?: number;
+      cap?: number;
+      network?: string;
+    }
+  | {
+      type: "autonomy_decision";
+      message: string;
+      letterId?: string;
+      fromName?: string;
+      decision?: "unlock" | "ignore" | "defer";
+      reason?: string;
+      confidence?: number;
+      network?: string;
+    }
+  | {
+      type: "x402.info";
+      message: string;
+      txid?: string;
+      network?: string;
+    }
+) & {
   id?: string;
   createdAt?: string;
 };

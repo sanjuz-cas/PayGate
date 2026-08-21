@@ -5,6 +5,7 @@ import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { type Context, Hono } from "hono";
 import { ALGORAND_TESTNET_CAIP2 } from "@x402-avm/avm";
+import { z } from "zod";
 
 import {
   agentIgnoreLetterSchema,
@@ -33,6 +34,17 @@ import { createId, nowIso } from "./lib/ids.js";
 import { createJuicebagClient } from "./lib/juicebag-client.js";
 import { buildAgentState, parseLegalIdentity } from "./lib/state.js";
 import { verifyWebhookSignature } from "./lib/webhook.js";
+import {
+  checkSpendGuardrail,
+  getRecentSpendLogs,
+  getSpendStatus,
+  recordSpendLog,
+} from "./lib/guardrail.js";
+import {
+  evaluateInboundLetter,
+  getRecentAutonomyDecisions,
+  recordAutonomyDecision,
+} from "./lib/autonomy.js";
 
 const env = loadAgentEnv(process.env);
 const { db } = createAgentDb(env.AGENT_DB_PATH);
@@ -87,6 +99,47 @@ app.get("/balances", (c) => {
   return c.json(getCachedAgentBalances(env));
 });
 
+app.get("/spend", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
+  const guardrail = await getSpendStatus(db, env);
+  const recentSpendLogs = await getRecentSpendLogs(db, 50);
+  return c.json({ guardrail, recentSpendLogs });
+});
+
+app.get("/autonomy/decisions", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
+  const decisions = await getRecentAutonomyDecisions(db, 50);
+  return c.json({ decisions, autonomousUnlockEnabled: env.AUTONOMOUS_UNLOCK_ENABLED });
+});
+
+app.post("/actions/set-cap", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
+  const schema = z.object({
+    dailyCapUsdc: z.number().positive(),
+  });
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  env.AGENT_DAILY_CAP_USDC = parsed.data.dailyCapUsdc;
+  const guardrail = await getSpendStatus(db, env);
+  return c.json({ success: true, guardrail });
+});
+
 app.post("/actions/register", async (c) => {
   console.log("[agent] POST /actions/register");
   const unauthorized = requireUiToken(c);
@@ -105,16 +158,60 @@ app.post("/actions/register", async (c) => {
   }
 
   const { currency = "usdc" } = parsed.data;
+  const costUsd = currency === "eurd" ? 0.05 : 1.0;
+
+  // Guardrail Check
+  const guardrailCheck = await checkSpendGuardrail(db, env, costUsd);
+  if (!guardrailCheck.allowed) {
+    await recordSpendLog(db, {
+      routeKey: ROUTE_KEYS.registration,
+      action: "register",
+      amountUsd: costUsd,
+      currency,
+      status: "blocked",
+    });
+
+    await events.publish({
+      type: "budget_blocked",
+      message: guardrailCheck.reason ?? "Registration blocked by daily budget cap",
+      routeKey: ROUTE_KEYS.registration,
+      requestedAmount: costUsd,
+      currentSpend: guardrailCheck.currentSpendUsdc,
+      cap: guardrailCheck.dailyCapUsdc,
+    });
+
+    return c.json(
+      {
+        error: guardrailCheck.reason,
+        code: "BUDGET_BLOCKED",
+        guardrail: guardrailCheck,
+      },
+      422,
+    );
+  }
+
   const result = await juicebag.register(db, parsed.data, currency);
   const txid = result.payment?.transaction ?? result.registration.x402?.txid;
-  const network = result.payment?.network ?? (currency === "eurd" ? ALGORAND_MAINNET_QUANTOZ : ALGORAND_TESTNET_CAIP2);
+  const network =
+    result.payment?.network ??
+    (currency === "eurd" ? ALGORAND_MAINNET_QUANTOZ : ALGORAND_TESTNET_CAIP2);
+
   if (txid) {
     await juicebag.recordPayment(db, {
       routeKey: ROUTE_KEYS.registration,
       txid,
-      amountUsd: currency === "eurd" ? 0.05 : 1,
+      amountUsd: costUsd,
       network,
       payTo: "",
+    });
+
+    await recordSpendLog(db, {
+      routeKey: ROUTE_KEYS.registration,
+      action: "register",
+      amountUsd: costUsd,
+      currency,
+      txid,
+      status: "settled",
     });
   }
 
@@ -142,9 +239,43 @@ app.post("/actions/send-letter", async (c) => {
   }
 
   const { currency: sendCurrency = "usdc" } = parsed.data;
+  const costUsd = sendCurrency === "eurd" ? 0.01 : 0.05;
+
+  // Guardrail Check
+  const guardrailCheck = await checkSpendGuardrail(db, env, costUsd);
+  if (!guardrailCheck.allowed) {
+    await recordSpendLog(db, {
+      routeKey: ROUTE_KEYS.outboundLetter,
+      action: "send-letter",
+      amountUsd: costUsd,
+      currency: sendCurrency,
+      status: "blocked",
+    });
+
+    await events.publish({
+      type: "budget_blocked",
+      message: guardrailCheck.reason ?? "Send letter blocked by daily budget cap",
+      routeKey: ROUTE_KEYS.outboundLetter,
+      requestedAmount: costUsd,
+      currentSpend: guardrailCheck.currentSpendUsdc,
+      cap: guardrailCheck.dailyCapUsdc,
+    });
+
+    return c.json(
+      {
+        error: guardrailCheck.reason,
+        code: "BUDGET_BLOCKED",
+        guardrail: guardrailCheck,
+      },
+      422,
+    );
+  }
+
   const result = await juicebag.sendLetter(db, parsed.data, sendCurrency);
   const txid = result.payment?.transaction ?? result.data.x402?.txid;
-  const sendNetwork = result.payment?.network ?? (sendCurrency === "eurd" ? ALGORAND_MAINNET_QUANTOZ : ALGORAND_TESTNET_CAIP2);
+  const sendNetwork =
+    result.payment?.network ??
+    (sendCurrency === "eurd" ? ALGORAND_MAINNET_QUANTOZ : ALGORAND_TESTNET_CAIP2);
 
   await juicebag.syncState(db);
 
@@ -152,9 +283,18 @@ app.post("/actions/send-letter", async (c) => {
     await juicebag.recordPayment(db, {
       routeKey: ROUTE_KEYS.outboundLetter,
       txid,
-      amountUsd: sendCurrency === "eurd" ? 0.01 : 0.05,
+      amountUsd: costUsd,
       network: sendNetwork,
       payTo: "",
+    });
+
+    await recordSpendLog(db, {
+      routeKey: ROUTE_KEYS.outboundLetter,
+      action: "send-letter",
+      amountUsd: costUsd,
+      currency: sendCurrency,
+      txid,
+      status: "settled",
     });
   }
 
@@ -182,9 +322,43 @@ app.post("/actions/unlock-letter", async (c) => {
   }
 
   const { currency: unlockCurrency = "usdc" } = parsed.data;
+  const costUsd = unlockCurrency === "eurd" ? 0.02 : 0.2;
+
+  // Guardrail Check
+  const guardrailCheck = await checkSpendGuardrail(db, env, costUsd);
+  if (!guardrailCheck.allowed) {
+    await recordSpendLog(db, {
+      routeKey: ROUTE_KEYS.inboundUnlock,
+      action: "unlock-letter",
+      amountUsd: costUsd,
+      currency: unlockCurrency,
+      status: "blocked",
+    });
+
+    await events.publish({
+      type: "budget_blocked",
+      message: guardrailCheck.reason ?? "Unlock letter blocked by daily budget cap",
+      routeKey: ROUTE_KEYS.inboundUnlock,
+      requestedAmount: costUsd,
+      currentSpend: guardrailCheck.currentSpendUsdc,
+      cap: guardrailCheck.dailyCapUsdc,
+    });
+
+    return c.json(
+      {
+        error: guardrailCheck.reason,
+        code: "BUDGET_BLOCKED",
+        guardrail: guardrailCheck,
+      },
+      422,
+    );
+  }
+
   const result = await juicebag.unlockLetter(db, parsed.data, unlockCurrency);
   const txid = result.payment?.transaction ?? result.data.x402?.txid;
-  const unlockNetwork = result.payment?.network ?? (unlockCurrency === "eurd" ? ALGORAND_MAINNET_QUANTOZ : ALGORAND_TESTNET_CAIP2);
+  const unlockNetwork =
+    result.payment?.network ??
+    (unlockCurrency === "eurd" ? ALGORAND_MAINNET_QUANTOZ : ALGORAND_TESTNET_CAIP2);
 
   await db
     .update(inboundLetters)
@@ -200,9 +374,18 @@ app.post("/actions/unlock-letter", async (c) => {
     await juicebag.recordPayment(db, {
       routeKey: ROUTE_KEYS.inboundUnlock,
       txid,
-      amountUsd: unlockCurrency === "eurd" ? 0.02 : 0.2,
+      amountUsd: costUsd,
       network: unlockNetwork,
       payTo: "",
+    });
+
+    await recordSpendLog(db, {
+      routeKey: ROUTE_KEYS.inboundUnlock,
+      action: "unlock-letter",
+      amountUsd: costUsd,
+      currency: unlockCurrency,
+      txid,
+      status: "settled",
     });
   }
 
@@ -243,6 +426,56 @@ app.post("/actions/ignore-letter", async (c) => {
 
   void refreshAgentBalances(env).catch(() => {});
   return c.json(await buildAgentState({ db, env }));
+});
+
+app.post("/actions/evaluate-letter", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
+  const schema = z.object({
+    letterId: z.string(),
+    fromName: z.string().optional(),
+    envelopeSummary: z.string().optional(),
+  });
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  // Lookup letter if not all details provided
+  let from = parsed.data.fromName ?? "";
+  let summary = parsed.data.envelopeSummary ?? "";
+  let pageCount = 1;
+
+  if (!from || !summary) {
+    const rows = await db
+      .select()
+      .from(inboundLetters)
+      .where(eq(inboundLetters.id, parsed.data.letterId))
+      .limit(1);
+    if (rows[0]) {
+      from = from || rows[0].fromName;
+      summary = summary || rows[0].envelopeSummary;
+      pageCount = rows[0].pageCount;
+    }
+  }
+
+  const decision = evaluateInboundLetter(
+    {
+      letterId: parsed.data.letterId,
+      from: from || "Unknown",
+      envelopeSummary: summary || "No summary",
+      pageCount,
+    },
+    env,
+  );
+
+  await recordAutonomyDecision(db, decision, false);
+  return c.json({ decision });
 });
 
 app.post("/webhooks/incoming-mail", async (c) => {
@@ -303,7 +536,130 @@ app.post("/webhooks/incoming-mail", async (c) => {
     message: `Received inbound mail notice for ${payload.letter.letterId}`,
   });
 
-  return c.json({ ok: true });
+  // Evaluate Autonomous Decision
+  const decision = evaluateInboundLetter(
+    {
+      letterId: payload.letter.letterId,
+      from: payload.letter.from,
+      envelopeSummary: payload.letter.envelopeSummary,
+      pageCount: payload.letter.pageCount,
+    },
+    env,
+  );
+
+  console.log(
+    `[agent:autonomy] Letter ${payload.letter.letterId} from "${payload.letter.from}" -> Decision: ${decision.decision.toUpperCase()} (${decision.reason})`,
+  );
+
+  await events.publish({
+    type: "autonomy_decision",
+    message: decision.reason,
+    letterId: decision.letterId,
+    fromName: decision.fromName,
+    decision: decision.decision,
+    reason: decision.reason,
+    confidence: decision.confidence,
+  });
+
+  if (env.AUTONOMOUS_UNLOCK_ENABLED) {
+    if (decision.decision === "unlock") {
+      const unlockCost = 0.2;
+      const guardrailCheck = await checkSpendGuardrail(db, env, unlockCost);
+
+      if (!guardrailCheck.allowed) {
+        console.warn(`[agent:autonomy] Autonomous unlock blocked by guardrail: ${guardrailCheck.reason}`);
+        await recordSpendLog(db, {
+          routeKey: ROUTE_KEYS.inboundUnlock,
+          action: "autonomous_unlock",
+          amountUsd: unlockCost,
+          currency: "usdc",
+          status: "blocked",
+        });
+
+        await events.publish({
+          type: "budget_blocked",
+          message: guardrailCheck.reason ?? "Autonomous unlock blocked by daily budget cap",
+          routeKey: ROUTE_KEYS.inboundUnlock,
+          requestedAmount: unlockCost,
+          currentSpend: guardrailCheck.currentSpendUsdc,
+          cap: guardrailCheck.dailyCapUsdc,
+        });
+
+        await recordAutonomyDecision(db, decision, false);
+      } else {
+        console.log(`[agent:autonomy] Executing autonomous unlock for letter ${payload.letter.letterId}...`);
+        try {
+          const unlockResult = await juicebag.unlockLetter(
+            db,
+            { letterId: payload.letter.letterId, currency: "usdc" },
+            "usdc",
+          );
+          const txid = unlockResult.payment?.transaction ?? unlockResult.data.x402?.txid;
+
+          await db
+            .update(inboundLetters)
+            .set({
+              serviceStatus: "received",
+              agentStatus: "received",
+              ocrText: unlockResult.data.ocrText,
+              unlockPaymentTxid: txid ?? null,
+            })
+            .where(eq(inboundLetters.id, payload.letter.letterId));
+
+          if (txid) {
+            await juicebag.recordPayment(db, {
+              routeKey: ROUTE_KEYS.inboundUnlock,
+              txid,
+              amountUsd: unlockCost,
+              network: ALGORAND_TESTNET_CAIP2,
+              payTo: "",
+            });
+
+            await recordSpendLog(db, {
+              routeKey: ROUTE_KEYS.inboundUnlock,
+              action: "autonomous_unlock",
+              amountUsd: unlockCost,
+              currency: "usdc",
+              txid,
+              status: "settled",
+            });
+          }
+
+          await events.publish({
+            type: "letter.unlocked",
+            message: `[Autonomous Action] Unlocked inbound letter ${payload.letter.letterId}`,
+            txid,
+            network: ALGORAND_TESTNET_CAIP2,
+          });
+
+          await recordAutonomyDecision(db, decision, true);
+          void refreshAgentBalances(env).catch(() => {});
+        } catch (err) {
+          console.error(`[agent:autonomy] Autonomous unlock failed for letter ${payload.letter.letterId}:`, err);
+          await recordAutonomyDecision(db, decision, false);
+        }
+      }
+    } else if (decision.decision === "ignore") {
+      console.log(`[agent:autonomy] Executing autonomous ignore for promotional letter ${payload.letter.letterId}`);
+      await db
+        .update(inboundLetters)
+        .set({ agentStatus: "ignored" })
+        .where(eq(inboundLetters.id, payload.letter.letterId));
+
+      await events.publish({
+        type: "letter.ignored",
+        message: `[Autonomous Action] Ignored letter ${payload.letter.letterId} (${decision.reason})`,
+      });
+
+      await recordAutonomyDecision(db, decision, true);
+    } else {
+      await recordAutonomyDecision(db, decision, false);
+    }
+  } else {
+    await recordAutonomyDecision(db, decision, false);
+  }
+
+  return c.json({ ok: true, decision });
 });
 
 app.get("/events", async (c) => {

@@ -77,6 +77,29 @@ export function createAgentDb(dbPath: string) {
       payload_json TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS agent_spend_log (
+      id TEXT PRIMARY KEY,
+      route_key TEXT NOT NULL,
+      action TEXT NOT NULL,
+      amount_usd TEXT NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'usdc',
+      txid TEXT,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS autonomy_decisions (
+      id TEXT PRIMARY KEY,
+      letter_id TEXT NOT NULL,
+      from_name TEXT NOT NULL,
+      envelope_summary TEXT NOT NULL,
+      decision TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      confidence TEXT NOT NULL DEFAULT '1.0',
+      executed INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `);
 
   return {

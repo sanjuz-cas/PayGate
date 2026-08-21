@@ -17,7 +17,7 @@ const envSchema = z.object({
   OCR_LANGS: z.string().default("deu+eng"),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   VITE_ADMIN_UI_TOKEN: z.string().default("juicebag-admin-demo-token"),
-  FACILITATOR_URL: z.string().url().default("https://facilitator.x402.goplausible.xyz"),
+  FACILITATOR_URL: z.string().url().default("https://facilitator.goplausible.xyz"),
   EURD_FACILITATOR_URL: z.string().url().default(EURD_FACILITATOR_URL),
   ALGOD_URL: z.string().url().default(ALGOD_TESTNET_URL),
   ALGOD_MAINNET_URL: z.string().url().default(ALGOD_MAINNET_URL),

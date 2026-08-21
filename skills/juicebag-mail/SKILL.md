@@ -34,14 +34,29 @@ The mailbox flow is intentionally split into paid stages. This is by design — 
 4. **Use `ignore_letter` for mail that does not need to be read.** This is a free local action — it marks the letter as ignored in the agent's own state so it stops appearing as pending.
 5. **Always report payment outcomes.** After any paid action, surface the transaction ID and the new status to the user.
 
+## Budget Guardrails & Spending Safety
+
+The agent is protected by a daily spending cap (`AGENT_DAILY_CAP_USDC`, e.g., $5.00/day).
+- Use `get_spend_status` to check cumulative spend, daily cap, and remaining budget.
+- If a paid action would exceed the daily cap, the agent will refuse the payment with a `budget_blocked` status. Handle this gracefully by informing the user that the budget limit was reached rather than retrying in an infinite loop.
+
+## Autonomous Decision Engine
+
+When new mail arrives, the agent automatically evaluates inbound metadata (sender, subject/summary):
+- **High-Priority Mail (e.g. Tax Office, Landlord, Invoices, Official Notices):** Recommended for autonomous unlock.
+- **Promotional / Junk Mail (e.g. Marketing, Lottery, Deals):** Automatically ignored to conserve wallet balance.
+- **Uncertain / Defer:** Held in pending for human or manual agent review.
+- You can call `evaluate_inbound_letter` at any time to obtain the autonomy decision and reasoning for a letter.
+
 ## Suggested Tool Order
 
-1. `get_agent_state` — check current registration, wallet balances, and inbox before doing anything.
+1. `get_agent_state` & `get_spend_status` — check current registration, wallet balances, spending limit, and inbox before doing anything.
 2. `register_mailbox` — if no mailbox exists yet, register one with the agent's legal identity and a webhook URL.
 3. `list_inbound_mail` or `list_outbound_mail` — review what is in the inbox or what letters have been sent.
-4. `send_letter` — when a physical outbound letter needs to be written and mailed.
-5. `unlock_letter` — only for inbound letters whose content is actually needed.
-6. `ignore_letter` — for letters that are not worth unlocking.
+4. `evaluate_inbound_letter` — evaluate whether an incoming letter is worth unlocking.
+5. `send_letter` — when a physical outbound letter needs to be written and mailed.
+6. `unlock_letter` — only for inbound letters whose content is actually needed.
+7. `ignore_letter` — for letters that are not worth unlocking.
 
 ## Letter Statuses
 
@@ -56,8 +71,9 @@ The mailbox flow is intentionally split into paid stages. This is by design — 
 
 ## Behavioral Notes
 
-- `get_agent_state` is always safe and free. Use it to orient before acting and to confirm results after a paid action.
+- `get_agent_state` and `get_spend_status` are always safe and free. Use them to orient before acting and to confirm results after a paid action.
 - Do not call `unlock_letter` speculatively. Each unlock is a real payment.
+- If a payment is blocked due to budget, do not blindly retry; notify the user about the spending guardrail.
 - If `register_mailbox` has already been called in a previous session, `get_agent_state` will show the existing registration — skip re-registration.
 - After every paid action, log or report the returned `txid` so the user can verify the payment on-chain.
 

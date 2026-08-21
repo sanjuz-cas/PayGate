@@ -64,3 +64,26 @@ export const webhookEvents = sqliteTable("webhook_events", {
   payloadJson: text("payload_json").notNull(),
   createdAt: text("created_at").notNull(),
 });
+
+export const agentSpendLog = sqliteTable("agent_spend_log", {
+  id: text("id").primaryKey(),
+  routeKey: text("route_key").notNull(),
+  action: text("action").notNull(),
+  amountUsd: text("amount_usd").notNull(),
+  currency: text("currency").notNull().default("usdc"),
+  txid: text("txid"),
+  status: text("status").notNull(), // 'settled' | 'blocked' | 'pending'
+  createdAt: text("created_at").notNull(),
+});
+
+export const autonomyDecisions = sqliteTable("autonomy_decisions", {
+  id: text("id").primaryKey(),
+  letterId: text("letter_id").notNull(),
+  fromName: text("from_name").notNull(),
+  envelopeSummary: text("envelope_summary").notNull(),
+  decision: text("decision").notNull(), // 'unlock' | 'ignore' | 'defer'
+  reason: text("reason").notNull(),
+  confidence: text("confidence").notNull().default("1.0"),
+  executed: integer("executed").notNull().default(0),
+  createdAt: text("created_at").notNull(),
+});
