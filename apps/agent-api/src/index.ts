@@ -46,7 +46,7 @@ import {
   recordAutonomyDecision,
 } from "./lib/autonomy.js";
 import { runAgentBrain, formatStepAsSSEEvent, type AgentBrainRequest } from "./lib/agent-brain.js";
-import { createServiceRegistryClient } from "./lib/service-registry.js";
+import { createServiceRegistryClient, type ServiceRegistryEntry } from "./lib/service-registry.js";
 import { streamSSE } from "hono/streaming";
 
 const env = loadAgentEnv(process.env);

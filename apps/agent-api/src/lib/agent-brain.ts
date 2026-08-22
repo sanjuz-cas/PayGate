@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import type { AgentEnv } from "./env.js";
 import { createServiceRegistryClient, type ServiceRegistryEntry, type AddressVerifyRequest } from "./service-registry.js";
-import { recordSpendLog } from "./guardrail.js";
+import { recordSpendLog, checkSpendGuardrail } from "./guardrail.js";
 import type { AgentDatabase } from "../db/index.js";
 import { ROUTE_KEYS } from "@juicebag-mail/shared";
 
@@ -13,6 +13,14 @@ import { ROUTE_KEYS } from "@juicebag-mail/shared";
 
 export type ToolName = "verify_address" | "send_letter" | "unlock_letter" | "register_mailbox";
 
+// Cost mapping for each tool in USD
+const TOOL_COSTS: Record<ToolName, number> = {
+  verify_address: 0.02,
+  send_letter: 0.05,
+  unlock_letter: 0.20,
+  register_mailbox: 1.00,
+};
+
 export interface ToolCallResult {
   toolName: ToolName;
   success: boolean;
@@ -20,6 +28,7 @@ export interface ToolCallResult {
   error?: string;
   txid?: string;
   reasoning?: string;
+  budgetBlocked?: boolean;
 }
 
 export interface AgentToolUseStep {
@@ -151,6 +160,19 @@ export async function executeTool(
   db: AgentDatabase,
 ): Promise<ToolCallResult> {
   const registryClient = createServiceRegistryClient(env);
+  const toolCostUsd = TOOL_COSTS[toolName];
+  
+  // SAFETY CHECK #1: Budget guardrail - check if this tool call would exceed daily cap
+  const guardrailCheck = await checkSpendGuardrail(db, env, toolCostUsd);
+  if (!guardrailCheck.allowed) {
+    console.warn(`[agent-brain] Tool ${toolName} blocked by budget guardrail: ${guardrailCheck.reason}`);
+    return {
+      toolName,
+      success: false,
+      error: guardrailCheck.reason,
+      budgetBlocked: true,
+    };
+  }
   
   try {
     switch (toolName) {
@@ -390,9 +412,12 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
 
   const tools: Anthropic.Tool[] = Object.values(TOOL_DEFINITIONS);
 
-  let maxIterations = 10; // Prevent infinite loops
+  // SAFETY CHECK #2: Hard max tool-call limit per task to prevent runaway loops
+  const MAX_TOOL_CALLS = 8;
+  let maxIterations = MAX_TOOL_CALLS * 2; // Allow some iterations for reasoning without tool calls
   let iterationCount = 0;
   let finalAnswer = "";
+  let toolCallCount = 0;
 
   while (iterationCount < maxIterations) {
     iterationCount++;
@@ -414,6 +439,15 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
           finalAnswer = block.text;
         }
       } else if (block.type === "tool_use") {
+        toolCallCount++;
+        
+        // SAFETY CHECK #2: Enforce hard max tool-call limit
+        if (toolCallCount > MAX_TOOL_CALLS) {
+          console.warn(`[agent-brain] Tool call limit (${MAX_TOOL_CALLS}) reached, halting`);
+          finalAnswer += "\n\n[Task halted: Maximum tool call limit reached to prevent runaway spending]";
+          break;
+        }
+        
         const toolName = block.name as ToolName;
         const toolInput = block.input as Record<string, unknown>;
         
@@ -431,7 +465,7 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
           timestamp: new Date().toISOString(),
         };
 
-        console.log(`[agent-brain] Step ${step.stepNumber}: Calling tool ${toolName}`);
+        console.log(`[agent-brain] Step ${step.stepNumber}: Calling tool ${toolName} (call #${toolCallCount}/${MAX_TOOL_CALLS})`);
         console.log(`[agent-brain] Reasoning: ${reasoning}`);
         console.log(`[agent-brain] Input:`, JSON.stringify(toolInput, null, 2));
 
@@ -441,11 +475,7 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
 
         if (result.txid) {
           allTxids.push(result.txid);
-          totalCostUsd += result.toolName === "verify_address" ? 0.02
-            : result.toolName === "send_letter" ? 0.05
-            : result.toolName === "unlock_letter" ? 0.20
-            : result.toolName === "register_mailbox" ? 1.0
-            : 0;
+          totalCostUsd += TOOL_COSTS[result.toolName];
         }
 
         steps.push(step);
@@ -464,7 +494,7 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
               tool_use_id: block.id,
               content: result.success
                 ? JSON.stringify(result.result)
-                : `Error: ${result.error}`,
+                : `Error: ${result.error}${result.budgetBlocked ? " (Budget exceeded - cannot proceed with this action)" : ""}`,
             },
           ],
         });
@@ -483,6 +513,12 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
         finalAnswer = textBlock.text;
       }
       break; // Exit the loop
+    }
+    
+    // Check if we hit the tool call limit mid-iteration
+    if (toolCallCount >= MAX_TOOL_CALLS) {
+      console.warn(`[agent-brain] Tool call limit (${MAX_TOOL_CALLS}) reached`);
+      break;
     }
   }
 
