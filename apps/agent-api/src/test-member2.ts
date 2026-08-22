@@ -58,7 +58,7 @@ async function runTests() {
 
   // Test 4: Autonomy Decision Engine - Priority Allowlist (Tax)
   console.log("Test 4: Autonomous decision on Tax Office mail");
-  const taxLetter = evaluateInboundLetter(
+  const taxLetter = await evaluateInboundLetter(
     {
       letterId: "let_tax_1",
       from: "City Tax Office Schnitzelburg",
@@ -72,7 +72,7 @@ async function runTests() {
 
   // Test 5: Autonomy Decision Engine - Promotional / Spam
   console.log("Test 5: Autonomous decision on Promo mail");
-  const promoLetter = evaluateInboundLetter(
+  const promoLetter = await evaluateInboundLetter(
     {
       letterId: "let_promo_1",
       from: "Casino Super Deals",
@@ -85,7 +85,7 @@ async function runTests() {
 
   // Test 6: Autonomy Decision Engine - Unknown / Defer
   console.log("Test 6: Autonomous decision on Unknown mail");
-  const unknownLetter = evaluateInboundLetter(
+  const unknownLetter = await evaluateInboundLetter(
     {
       letterId: "let_unk_1",
       from: "Random Strangers Club",
