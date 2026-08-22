@@ -696,4 +696,28 @@ export function registerPublicRoutes(
 
     return c.json({ ok: true });
   });
+
+  // Service Registry endpoint for agent discovery
+  app.get("/v1/service-registry", (c) =>
+    c.json({
+      services: [
+        {
+          name: "address-verification",
+          description: "Verify physical address format and validity before sending mail",
+          endpoint: `${env.SERVICE_BASE_URL.replace("3000", "3002")}/v1/verify-address`,
+          price: 0.02,
+          currency: "USDC",
+          network: "algorand:testnet",
+        },
+        {
+          name: "send-letter",
+          description: "Send a physical outbound letter via Juicebag Mail",
+          endpoint: `${env.SERVICE_BASE_URL}/v1/outbound-letters`,
+          price: 0.05,
+          currency: "USDC",
+          network: "algorand:testnet",
+        },
+      ],
+    }),
+  );
 }
