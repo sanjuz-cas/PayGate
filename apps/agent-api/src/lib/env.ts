@@ -32,6 +32,7 @@ const envSchema = z.object({
   AUTONOMOUS_ALLOWLIST_SENDERS: z
     .string()
     .default("Tax Office,Landlord,City Government,Bürgeramt,Finanzamt,Bank,State Revenue,City Tax Office"),
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 export type AgentEnv = z.infer<typeof envSchema> & {

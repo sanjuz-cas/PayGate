@@ -1,19 +1,49 @@
-node_modules
-.pnpm-store
-dist
-.turbo
-.DS_Store
+```
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+
+# Build outputs
+dist/
+build/
+coverage/
+.nyc_output/
+.eslintcache
+
+# TypeScript
+*.tsbuildinfo
+*.js.map
+*.d.ts
+
+# Environment variables
 .env
-.env.agent
-.env.service
-.data
-*.db
-*.db-shm
-*.db-wal
-storage
-apps/*/storage
-apps/*/.data
-prompts
-algorand
-.venv
-.mcp.json
+.env.local
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+.jest/
+
+# Temporary files
+*.tmp
+*~
+```
