@@ -22,12 +22,12 @@ import {
 
 const envSchema = z.object({
   AGENT_PORT: z.coerce.number().int().positive().default(DEFAULT_AGENT_PORT),
-  AGENT_BASE_URL: z.string().url().default(`http://localhost:${DEFAULT_AGENT_PORT}`),
+  AGENT_BASE_URL: z.string().default(`http://localhost:${DEFAULT_AGENT_PORT}`),
   AGENT_DB_PATH: z.string().default(path.resolve(process.cwd(), ".data/agent.db")),
   VITE_AGENT_UI_TOKEN: z.string().default("juicebag-agent-ui-demo-token"),
-  SERVICE_BASE_URL: z.string().url().default(`http://localhost:${DEFAULT_SERVICE_PORT}`),
-  ALGOD_URL: z.string().url().default(CONST_ALGOD_TESTNET_URL),
-  ALGOD_MAINNET_URL: z.string().url().default(CONST_ALGOD_MAINNET_URL),
+  SERVICE_BASE_URL: z.string().default(`http://localhost:${DEFAULT_SERVICE_PORT}`),
+  ALGOD_URL: z.string().default(CONST_ALGOD_TESTNET_URL),
+  ALGOD_MAINNET_URL: z.string().default(CONST_ALGOD_MAINNET_URL),
   AGENT_MNEMONIC: z.string().optional(),
   AVM_MNEMONIC: z.string().optional(),
   AGENT_DAILY_CAP_USDC: z.coerce.number().positive().default(DEFAULT_DAILY_CAP_USDC),
@@ -54,22 +54,29 @@ export type AgentEnv = z.infer<typeof envSchema> & {
   mnemonic: string;
 };
 
-function normalizeUrl(url?: string): string | undefined {
-  if (!url || typeof url !== "string") return undefined;
-  const trimmed = url.trim();
-  if (!trimmed) return undefined;
+function cleanUrl(url?: string, fallback = "http://localhost:4021"): string {
+  if (!url || typeof url !== "string") return fallback;
+  let trimmed = url.trim();
+  if (!trimmed) return fallback;
   if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-    return `https://${trimmed}`;
+    trimmed = `https://${trimmed}`;
   }
-  return trimmed;
+  try {
+    new URL(trimmed);
+    return trimmed;
+  } catch {
+    return fallback;
+  }
 }
 
 export function loadAgentEnv(input: NodeJS.ProcessEnv): AgentEnv {
   const normalizedInput = {
     ...input,
     AGENT_PORT: input.PORT ?? input.AGENT_PORT,
-    SERVICE_BASE_URL: normalizeUrl(input.SERVICE_BASE_URL) ?? input.SERVICE_BASE_URL,
-    AGENT_BASE_URL: normalizeUrl(input.AGENT_BASE_URL) ?? input.AGENT_BASE_URL,
+    SERVICE_BASE_URL: cleanUrl(input.SERVICE_BASE_URL, `http://localhost:${DEFAULT_SERVICE_PORT}`),
+    AGENT_BASE_URL: cleanUrl(input.AGENT_BASE_URL, `http://localhost:${DEFAULT_AGENT_PORT}`),
+    ALGOD_URL: cleanUrl(input.ALGOD_URL, CONST_ALGOD_TESTNET_URL),
+    ALGOD_MAINNET_URL: cleanUrl(input.ALGOD_MAINNET_URL, CONST_ALGOD_MAINNET_URL),
   };
 
   const parsed = envSchema.parse(normalizedInput);

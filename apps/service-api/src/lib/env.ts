@@ -11,30 +11,35 @@ import {
 
 const envSchema = z.object({
   SERVICE_PORT: z.coerce.number().int().positive().default(SERVICE_PORT),
-  SERVICE_BASE_URL: z.string().url().default(`http://localhost:${SERVICE_PORT}`),
+  SERVICE_BASE_URL: z.string().default(`http://localhost:${SERVICE_PORT}`),
   SERVICE_DB_PATH: z.string().default(path.resolve(process.cwd(), ".data/service.db")),
   STORAGE_DIR: z.string().default(path.resolve(process.cwd(), "storage")),
   OCR_LANGS: z.string().default("deu+eng"),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   VITE_ADMIN_UI_TOKEN: z.string().default("juicebag-admin-demo-token"),
-  FACILITATOR_URL: z.string().url().default("https://facilitator.goplausible.xyz"),
-  EURD_FACILITATOR_URL: z.string().url().default(EURD_FACILITATOR_URL),
-  ALGOD_URL: z.string().url().default(ALGOD_TESTNET_URL),
-  ALGOD_MAINNET_URL: z.string().url().default(ALGOD_MAINNET_URL),
+  FACILITATOR_URL: z.string().default("https://facilitator.goplausible.xyz"),
+  EURD_FACILITATOR_URL: z.string().default(EURD_FACILITATOR_URL),
+  ALGOD_URL: z.string().default(ALGOD_TESTNET_URL),
+  ALGOD_MAINNET_URL: z.string().default(ALGOD_MAINNET_URL),
   SELLER_ADDRESS: z.string().min(1, "SELLER_ADDRESS is required to accept x402 payments"),
   WEBHOOK_SECRET_MASTER_KEY: z
     .string()
     .default("juicebag-mail-demo-webhook-master-key"),
 });
 
-function normalizeUrl(url?: string): string | undefined {
-  if (!url || typeof url !== "string") return undefined;
-  const trimmed = url.trim();
-  if (!trimmed) return undefined;
+function cleanUrl(url?: string, fallback = `http://localhost:${SERVICE_PORT}`): string {
+  if (!url || typeof url !== "string") return fallback;
+  let trimmed = url.trim();
+  if (!trimmed) return fallback;
   if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-    return `https://${trimmed}`;
+    trimmed = `https://${trimmed}`;
   }
-  return trimmed;
+  try {
+    new URL(trimmed);
+    return trimmed;
+  } catch {
+    return fallback;
+  }
 }
 
 export type ServiceEnv = z.infer<typeof envSchema>;
@@ -43,7 +48,10 @@ export function loadServiceEnv(input: NodeJS.ProcessEnv): ServiceEnv {
   return envSchema.parse({
     ...input,
     SERVICE_PORT: input.PORT ?? input.SERVICE_PORT,
-    SERVICE_BASE_URL: normalizeUrl(input.SERVICE_BASE_URL) ?? input.SERVICE_BASE_URL,
-    FACILITATOR_URL: normalizeUrl(input.FACILITATOR_URL) ?? input.FACILITATOR_URL,
+    SERVICE_BASE_URL: cleanUrl(input.SERVICE_BASE_URL, `http://localhost:${SERVICE_PORT}`),
+    FACILITATOR_URL: cleanUrl(input.FACILITATOR_URL, "https://facilitator.goplausible.xyz"),
+    EURD_FACILITATOR_URL: cleanUrl(input.EURD_FACILITATOR_URL, EURD_FACILITATOR_URL),
+    ALGOD_URL: cleanUrl(input.ALGOD_URL, ALGOD_TESTNET_URL),
+    ALGOD_MAINNET_URL: cleanUrl(input.ALGOD_MAINNET_URL, ALGOD_MAINNET_URL),
   });
 }
