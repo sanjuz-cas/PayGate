@@ -1,4 +1,7 @@
 {
+  "buildCommand": "pnpm --filter @juicebag-mail/shared build && pnpm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
