@@ -100,6 +100,16 @@ export function createAgentDb(dbPath: string) {
       executed INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS eco_contributions (
+      id TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      amount_usd TEXT NOT NULL,
+      trees_count INTEGER NOT NULL DEFAULT 1,
+      txid TEXT NOT NULL,
+      recipient_address TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `);
 
   return {
