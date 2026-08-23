@@ -17,79 +17,72 @@ export type InboundLetterReceivedEvent = {
 
 export type AgentEvent =
   | {
-      id: string;
-      type: "registration.completed";
-      createdAt: string;
-      message: string;
-      txid?: string;
-    }
+    id: string;
+    type: "registration.completed";
+    createdAt: string;
+    message: string;
+    txid?: string;
+  }
   | {
-      id: string;
-      type: "letter.sent";
-      createdAt: string;
-      message: string;
-      txid?: string;
-    }
+    id: string;
+    type: "letter.sent";
+    createdAt: string;
+    message: string;
+    txid?: string;
+  }
   | {
-      id: string;
-      type: "letter.unlocked";
-      createdAt: string;
-      message: string;
-      txid?: string;
-    }
+    id: string;
+    type: "letter.unlocked";
+    createdAt: string;
+    message: string;
+    txid?: string;
+  }
   | {
-      id: string;
-      type: "letter.ignored";
-      createdAt: string;
-      message: string;
-    }
+    id: string;
+    type: "letter.ignored";
+    createdAt: string;
+    message: string;
+  }
   | {
-      id: string;
-      type: "webhook.received";
-      createdAt: string;
-      message: string;
-    }
+    id: string;
+    type: "webhook.received";
+    createdAt: string;
+    message: string;
+  }
   | {
-      id: string;
-      type: "budget_blocked";
-      createdAt: string;
-      message: string;
-      routeKey?: string;
-      requestedAmount?: number;
-      currentSpend?: number;
-      cap?: number;
-    }
+    id: string;
+    type: "budget_blocked";
+    createdAt: string;
+    message: string;
+    routeKey?: string;
+    requestedAmount?: number;
+    currentSpend?: number;
+    cap?: number;
+  }
   | {
-      id: string;
-      type: "autonomy_decision";
-      createdAt: string;
-      message: string;
-      letterId?: string;
-      fromName?: string;
-      decision?: "unlock" | "ignore" | "defer";
-      reason?: string;
-      confidence?: number;
-    }
+    id: string;
+    type: "autonomy_decision";
+    createdAt: string;
+    message: string;
+    letterId?: string;
+    fromName?: string;
+    decision?: "unlock" | "ignore" | "defer";
+    reason?: string;
+    confidence?: number;
+  }
   | {
-      id: string;
-      type: "x402.info";
-      createdAt: string;
-      message: string;
-      txid?: string;
-    }
+    id: string;
+    type: "x402.info";
+    createdAt: string;
+    message: string;
+    txid?: string;
+  }
   | {
-      id: string;
-      type: "wallet.signature_required";
-      createdAt: string;
-      message: string;
-      requestId?: string;
-      walletAddress?: string;
-    }
-  | {
-      id: string;
-      type: "wallet.signature_approved";
-      createdAt: string;
-      message: string;
-      requestId?: string;
-      walletAddress?: string;
-    };
+    id: string;
+    type: "eco.contribution";
+    createdAt: string;
+    message: string;
+    txid?: string;
+    amountUsd?: number;
+    treesCount?: number;
+  };

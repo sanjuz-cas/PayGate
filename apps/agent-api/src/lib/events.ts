@@ -8,53 +8,54 @@ import type { AgentEvent } from "@juicebag-mail/shared";
 type Listener = (event: AgentEvent) => void;
 type PublishableEvent = (
   | {
-      type: "registration.completed";
-      message: string;
-      txid?: string;
-      network?: string;
-    }
+    type: "registration.completed";
+    message: string;
+    txid?: string;
+    network?: string;
+  }
   | {
-      type: "letter.sent";
-      message: string;
-      txid?: string;
-      network?: string;
-    }
+    type: "letter.sent";
+    message: string;
+    txid?: string;
+    network?: string;
+  }
   | {
-      type: "letter.unlocked";
-      message: string;
-      txid?: string;
-      network?: string;
-    }
+    type: "letter.unlocked";
+    message: string;
+    txid?: string;
+    network?: string;
+  }
   | {
-      type: "letter.ignored";
-      message: string;
-      network?: string;
-    }
+    type: "letter.ignored";
+    message: string;
+    network?: string;
+  }
   | {
-      type: "webhook.received";
-      message: string;
-      network?: string;
-    }
+    type: "webhook.received";
+    message: string;
+    network?: string;
+  }
   | {
-      type: "budget_blocked";
-      message: string;
-      routeKey?: string;
-      requestedAmount?: number;
-      currentSpend?: number;
-      cap?: number;
-      network?: string;
-    }
+    type: "budget_blocked";
+    message: string;
+    routeKey?: string;
+    requestedAmount?: number;
+    currentSpend?: number;
+    cap?: number;
+    network?: string;
+  }
   | {
-      type: "autonomy_decision";
-      message: string;
-      letterId?: string;
-      fromName?: string;
-      decision?: "unlock" | "ignore" | "defer";
-      reason?: string;
-      confidence?: number;
-      network?: string;
-    }
+    type: "autonomy_decision";
+    message: string;
+    letterId?: string;
+    fromName?: string;
+    decision?: "unlock" | "ignore" | "defer";
+    reason?: string;
+    confidence?: number;
+    network?: string;
+  }
   | {
+<<<<<<< Updated upstream
       type: "x402.info";
       message: string;
       txid?: string;
@@ -74,6 +75,21 @@ type PublishableEvent = (
       walletAddress?: string;
       network?: string;
     }
+=======
+    type: "x402.info";
+    message: string;
+    txid?: string;
+    network?: string;
+  }
+  | {
+    type: "eco.contribution";
+    message: string;
+    txid?: string;
+    network?: string;
+    amountUsd?: number;
+    treesCount?: number;
+  }
+>>>>>>> Stashed changes
 ) & {
   id?: string;
   createdAt?: string;

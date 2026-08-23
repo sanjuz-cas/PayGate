@@ -87,3 +87,14 @@ export const autonomyDecisions = sqliteTable("autonomy_decisions", {
   executed: integer("executed").notNull().default(0),
   createdAt: text("created_at").notNull(),
 });
+
+export const ecoContributions = sqliteTable("eco_contributions", {
+  id: text("id").primaryKey(),
+  action: text("action").notNull(),
+  amountUsd: text("amount_usd").notNull(),
+  treesCount: integer("trees_count").notNull().default(1),
+  txid: text("txid").notNull(),
+  recipientAddress: text("recipient_address").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+

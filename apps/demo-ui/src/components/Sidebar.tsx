@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { AgentState } from "@juicebag-mail/shared";
+import { SidebarEcoForest } from "./SidebarEcoForest";
 
 interface SidebarProps {
   activePage: string;
@@ -7,6 +8,9 @@ interface SidebarProps {
   agentState?: AgentState | null;
   unreadInboundCount: number;
   guardrailBlocked?: boolean;
+  treesCount?: number;
+  totalContributedUsd?: number;
+  lastEvent?: any;
 }
 
 export function Sidebar({
@@ -15,6 +19,9 @@ export function Sidebar({
   agentState,
   unreadInboundCount,
   guardrailBlocked,
+  treesCount = 0,
+  totalContributedUsd,
+  lastEvent,
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const agentName = agentState?.registration?.agentName ?? "Acme Filing Agent";
@@ -22,29 +29,32 @@ export function Sidebar({
   const displayId = mailboxId.length > 12 ? `${mailboxId.slice(0, 6)}...${mailboxId.slice(-4)}` : mailboxId;
 
   const navItems: Array<{ id: string; label: string; icon: string; badge?: number; alert?: boolean }> = [
-    { id: "agent", label: "Overview", icon: "🏠", badge: unreadInboundCount > 0 ? unreadInboundCount : undefined },
-    { id: "send", label: "Send Letter", icon: "✉️" },
-    { id: "guardrails", label: "Guardrails & Ledger", icon: "🛡️", alert: guardrailBlocked },
-    { id: "ops", label: "Postal Ops Hub", icon: "🏢" },
+    { id: "agent", label: "Overview", icon: "", badge: unreadInboundCount > 0 ? unreadInboundCount : undefined },
+    { id: "send", label: "Send Letter", icon: "" },
+    { id: "guardrails", label: "Guardrails & Ledger", icon: "", alert: guardrailBlocked },
+    { id: "ops", label: "Postal Ops Hub", icon: "" },
   ];
 
   return (
     <aside className={`app-sidebar ${isCollapsed ? "is-collapsed" : ""}`}>
-      {/* Top Group: Network Badge + Primary Navigation Links */}
+      {/* Top Group: Workspace Identity + Primary Navigation Links */}
       <div className="sidebar-upper-wrap">
-        {/* Top Section: Algorand Network Pill Dropdown */}
-        <div className="sidebar-top-section">
-          <div className="sidebar-protocol-badge" title="Algorand TestNet x402">
-            <span className="protocol-dot">●</span>
-            {!isCollapsed && (
-              <>
-                <span className="protocol-text">Algorand TestNet</span>
-                <span className="protocol-tag">x402</span>
-                <span className="dropdown-caret">▾</span>
-              </>
-            )}
-          </div>
+        {/* Workspace Identity Header */}
+        <div className="sidebar-workspace-header">
+          <div className="workspace-avatar-box">🏢</div>
+          {!isCollapsed && (
+            <div className="workspace-meta">
+              <div className="workspace-title">{agentName}</div>
+              <div className="workspace-sub-row">
+                <span className="workspace-status-dot">●</span>
+                <span className="workspace-tag">Agent Active</span>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Navigation Category Label */}
+        {!isCollapsed && <div className="sidebar-section-header">NAVIGATION</div>}
 
         {/* Primary Navigation Links */}
         <nav className="sidebar-nav-group">
@@ -70,6 +80,16 @@ export function Sidebar({
             );
           })}
         </nav>
+
+        {/* EcoGPT Tree Growing Sidebar Container */}
+        {!isCollapsed && (
+          <SidebarEcoForest
+            treesCount={treesCount}
+            totalUsd={totalContributedUsd}
+            lastEvent={lastEvent}
+            onViewImpact={() => onSelectPage("agent")}
+          />
+        )}
       </div>
 
       {/* Secondary & System Items */}

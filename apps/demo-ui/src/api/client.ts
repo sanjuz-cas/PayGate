@@ -2,6 +2,7 @@ import type {
   AgentRegistrationInput,
   AgentSendLetterInput,
   AgentState,
+  EcoStats,
   InternalInboundLetterScanExtractResponse,
   ServiceState,
 } from "@juicebag-mail/shared";
@@ -84,6 +85,13 @@ export const api = {
   },
   getSpendStatus() {
     return request<{ guardrail: import("@juicebag-mail/shared").AgentGuardrail; recentSpendLogs: any[] }>(`${agentApiUrl}/spend`, {
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+      },
+    });
+  },
+  getEcoStats() {
+    return request<EcoStats>(`${agentApiUrl}/eco-stats`, {
       headers: {
         Authorization: `Bearer ${agentUiToken}`,
       },

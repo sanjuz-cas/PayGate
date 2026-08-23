@@ -71,6 +71,7 @@ export function App() {
 
   const agent = usePollingResource(api.getAgentState, agentStateInterval);
   const agentBalances = usePollingResource(api.getAgentBalances, 2_000);
+  const ecoStats = usePollingResource(api.getEcoStats, 3_000);
   const service = usePollingResource(api.getServiceState, 8_000);
   const serviceBalances = usePollingResource(api.getServiceBalances, 2_000);
   const liveAgentEvent = useAgentEvents();
@@ -259,10 +260,10 @@ export function App() {
         label: isIgnored
           ? "Spam Ignored"
           : decision?.decision === "unlock"
-          ? "Auto-Unlock"
-          : decision?.decision === "defer"
-          ? "Deferred"
-          : "Evaluated",
+            ? "Auto-Unlock"
+            : decision?.decision === "defer"
+              ? "Deferred"
+              : "Evaluated",
         timestamp: decision?.evaluatedAt,
         state: isIgnored ? "skipped" : decision ? "completed" : letter.agentStatus === "pending" ? "current" : "completed",
       },
@@ -347,6 +348,8 @@ export function App() {
             onOpenChat={() => setIsChatOpen(true)}
             unreadInboundCount={unreadCount}
             guardrailBlocked={isBlocked}
+            treesCount={ecoStats.data?.totalTreesPlanted ?? 0}
+            lastEvent={liveAgentEvent}
           />
           <div className="dashboard-shell-layout">
             <Sidebar
@@ -355,119 +358,122 @@ export function App() {
               agentState={agent.data}
               unreadInboundCount={unreadCount}
               guardrailBlocked={isBlocked}
+              treesCount={ecoStats.data?.totalTreesPlanted ?? 0}
+              totalContributedUsd={ecoStats.data?.totalContributedUsd}
+              lastEvent={liveAgentEvent}
             />
             <main className="dashboard-main-pane">
               {activePage === "agent" && (
                 <AgentPage
-              agentState={agent.data}
-              agentBalances={displayedBalances}
-              selectedCurrency={selectedCurrency}
-              registrationForm={registrationForm}
-              onRegistrationChange={setRegistrationForm}
-              onRegister={async () => {
-                await runAction("register", () =>
-                  api.registerAgent({ ...registrationForm, currency: selectedCurrency }),
-                );
-              }}
-              onUnlockLetter={async (id) => {
-                await runAction(`unlock-${id}`, () =>
-                  api.unlockLetter(id, selectedCurrency),
-                );
-              }}
-              onIgnoreLetter={async (id) => {
-                await runAction(`ignore-${id}`, () =>
-                  api.ignoreLetter(id),
-                );
-              }}
-              onSelectLetterModal={(letter) => setModal({ kind: "agent-inbound", letter })}
-              onUpdateCap={handleUpdateCap}
-              isUpdatingCap={isUpdatingCap}
-              busyActions={busyActions}
-              budgetBlockedAlert={budgetBlockedAlert}
-              onDismissBudgetAlert={() => setBudgetBlockedAlert(null)}
-              currentAgentEvent={currentAgentEvent}
-              onNavigateToSend={() => setActivePage("send")}
-              onNavigateToOps={() => setActivePage("ops")}
-            />
-          )}
+                  agentState={agent.data}
+                  agentBalances={displayedBalances}
+                  selectedCurrency={selectedCurrency}
+                  registrationForm={registrationForm}
+                  onRegistrationChange={setRegistrationForm}
+                  onRegister={async () => {
+                    await runAction("register", () =>
+                      api.registerAgent({ ...registrationForm, currency: selectedCurrency }),
+                    );
+                  }}
+                  onUnlockLetter={async (id) => {
+                    await runAction(`unlock-${id}`, () =>
+                      api.unlockLetter(id, selectedCurrency),
+                    );
+                  }}
+                  onIgnoreLetter={async (id) => {
+                    await runAction(`ignore-${id}`, () =>
+                      api.ignoreLetter(id),
+                    );
+                  }}
+                  onSelectLetterModal={(letter) => setModal({ kind: "agent-inbound", letter })}
+                  onUpdateCap={handleUpdateCap}
+                  isUpdatingCap={isUpdatingCap}
+                  busyActions={busyActions}
+                  budgetBlockedAlert={budgetBlockedAlert}
+                  onDismissBudgetAlert={() => setBudgetBlockedAlert(null)}
+                  currentAgentEvent={currentAgentEvent}
+                  onNavigateToSend={() => setActivePage("send")}
+                  onNavigateToOps={() => setActivePage("ops")}
+                />
+              )}
 
-          {activePage === "send" && (
-            <SendLetterPage
-              letterForm={letterForm}
-              onLetterFormChange={setLetterForm}
-              onSendLetter={async () => {
-                await runAction("send-letter", () =>
-                  api.sendLetter({ ...letterForm, currency: selectedCurrency }),
-                );
-              }}
-              outboundLetters={agent.data?.outboundLetters ?? []}
-              isRegistered={!!agent.data?.registration}
-              selectedCurrency={selectedCurrency}
-              busyActions={busyActions}
-              onSelectLetterModal={(letter) => setModal({ kind: "agent-outbound", letter })}
-            />
-          )}
+              {activePage === "send" && (
+                <SendLetterPage
+                  letterForm={letterForm}
+                  onLetterFormChange={setLetterForm}
+                  onSendLetter={async () => {
+                    await runAction("send-letter", () =>
+                      api.sendLetter({ ...letterForm, currency: selectedCurrency }),
+                    );
+                  }}
+                  outboundLetters={agent.data?.outboundLetters ?? []}
+                  isRegistered={!!agent.data?.registration}
+                  selectedCurrency={selectedCurrency}
+                  busyActions={busyActions}
+                  onSelectLetterModal={(letter) => setModal({ kind: "agent-outbound", letter })}
+                />
+              )}
 
-          {activePage === "ops" && (
-            <OpsConsolePage
-              serviceState={service.data}
-              serviceBalances={serviceBalances.data ?? { usdc: 0, eurd: 0, address: "" }}
-              inboundForm={inboundForm}
-              onInboundFormChange={setInboundForm}
-              inboundMode={inboundMode}
-              onInboundModeChange={setInboundMode}
-              scanFile={scanFile}
-              onScanFileChange={setScanFile}
-              onExtractScan={handleScanExtract}
-              onIngestLetter={async () => {
-                await runAction("ingest", () =>
-                  api.ingestInboundLetter({
-                    mailboxId: inboundForm.mailboxId || defaultMailboxId,
-                    fromName: inboundForm.fromName,
-                    pageCount: 1,
-                    envelopeSummary: inboundForm.envelopeSummary,
-                    ocrText: inboundForm.ocrText,
-                    scanDraftId: inboundMode === "scan" ? inboundForm.scanDraftId || undefined : undefined,
-                    scanFileName: inboundMode === "scan" ? inboundForm.scanFileName || undefined : undefined,
-                  }),
-                );
-              }}
-              onMarkOutboundSent={(id) =>
-                runAction(`mark-${id}`, () => api.markOutboundSent(id)).then(() => {
-                  setSentToPrinterIds((prev) => {
-                    const next = new Set(prev);
-                    next.delete(id);
-                    return next;
-                  });
-                })
-              }
-              sentToPrinterIds={sentToPrinterIds}
-              onSendToPrinter={(id) => setSentToPrinterIds((prev) => new Set([...prev, id]))}
-              busyActions={busyActions}
-              actionResults={actionResults}
-              onSelectInboundModal={(letter) => setModal({ kind: "service-inbound", letter })}
-              onSelectOutboundModal={(letter) => setModal({ kind: "service-outbound", letter })}
-              currentServiceEvent={currentServiceEvent}
-              defaultMailboxId={defaultMailboxId}
-            />
-          )}
+              {activePage === "ops" && (
+                <OpsConsolePage
+                  serviceState={service.data}
+                  serviceBalances={serviceBalances.data ?? { usdc: 0, eurd: 0, address: "" }}
+                  inboundForm={inboundForm}
+                  onInboundFormChange={setInboundForm}
+                  inboundMode={inboundMode}
+                  onInboundModeChange={setInboundMode}
+                  scanFile={scanFile}
+                  onScanFileChange={setScanFile}
+                  onExtractScan={handleScanExtract}
+                  onIngestLetter={async () => {
+                    await runAction("ingest", () =>
+                      api.ingestInboundLetter({
+                        mailboxId: inboundForm.mailboxId || defaultMailboxId,
+                        fromName: inboundForm.fromName,
+                        pageCount: 1,
+                        envelopeSummary: inboundForm.envelopeSummary,
+                        ocrText: inboundForm.ocrText,
+                        scanDraftId: inboundMode === "scan" ? inboundForm.scanDraftId || undefined : undefined,
+                        scanFileName: inboundMode === "scan" ? inboundForm.scanFileName || undefined : undefined,
+                      }),
+                    );
+                  }}
+                  onMarkOutboundSent={(id) =>
+                    runAction(`mark-${id}`, () => api.markOutboundSent(id)).then(() => {
+                      setSentToPrinterIds((prev) => {
+                        const next = new Set(prev);
+                        next.delete(id);
+                        return next;
+                      });
+                    })
+                  }
+                  sentToPrinterIds={sentToPrinterIds}
+                  onSendToPrinter={(id) => setSentToPrinterIds((prev) => new Set([...prev, id]))}
+                  busyActions={busyActions}
+                  actionResults={actionResults}
+                  onSelectInboundModal={(letter) => setModal({ kind: "service-inbound", letter })}
+                  onSelectOutboundModal={(letter) => setModal({ kind: "service-outbound", letter })}
+                  currentServiceEvent={currentServiceEvent}
+                  defaultMailboxId={defaultMailboxId}
+                />
+              )}
 
-          {activePage === "guardrails" && (
-            <GuardrailsPage
-              guardrail={agent.data?.guardrail}
-              decisions={agent.data?.recentAutonomyDecisions ?? []}
-              recentPayments={agent.data?.recentPayments ?? []}
-              onUpdateCap={handleUpdateCap}
-              isUpdatingCap={isUpdatingCap}
-            />
-          )}
-        </main>
-      </div>
-    </>
-  )}
+              {activePage === "guardrails" && (
+                <GuardrailsPage
+                  guardrail={agent.data?.guardrail}
+                  decisions={agent.data?.recentAutonomyDecisions ?? []}
+                  recentPayments={agent.data?.recentPayments ?? []}
+                  onUpdateCap={handleUpdateCap}
+                  isUpdatingCap={isUpdatingCap}
+                />
+              )}
+            </main>
+          </div>
+        </>
+      )}
 
-  {/* Global Error Banner */}
-  {activePage !== "hero" && (uiError || (agent.error && agent.error !== "Failed to fetch") || (service.error && service.error !== "Failed to fetch")) && (
+      {/* Global Error Banner */}
+      {activePage !== "hero" && (uiError || (agent.error && agent.error !== "Failed to fetch") || (service.error && service.error !== "Failed to fetch")) && (
         <footer className="error-strip">
           {agent.error && agent.error !== "Failed to fetch" && <span>Agent Error: {agent.error}</span>}
           {service.error && service.error !== "Failed to fetch" && <span>Service Error: {service.error}</span>}
@@ -611,7 +617,7 @@ export function App() {
         onClose={() => setIsChatOpen(false)}
         agentState={agent.data}
         onStateRefresh={() => void agent.refresh()}
-        hideFloatingLauncher={activePage === "hero"}
+        hideFloatingLauncher={true}
       />
     </div>
   );

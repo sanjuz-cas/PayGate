@@ -3,7 +3,11 @@ import {
   ROUTE_PRICES,
   ROUTE_PRICES_EURD_DISPLAY,
 } from "@juicebag-mail/shared";
+<<<<<<< Updated upstream
 import { useWalletConnect } from "../wallet/WalletConnectContext";
+=======
+import { NavEcoTreeBadge } from "./NavEcoTreeBadge";
+>>>>>>> Stashed changes
 
 export type NavPage = "hero" | "agent" | "send" | "guardrails" | "ops";
 
@@ -16,6 +20,8 @@ interface NavigationProps {
   onOpenChat: () => void;
   unreadInboundCount: number;
   guardrailBlocked?: boolean;
+  treesCount?: number;
+  lastEvent?: any;
 }
 
 export function Navigation({
@@ -27,7 +33,10 @@ export function Navigation({
   onOpenChat,
   unreadInboundCount,
   guardrailBlocked,
+  treesCount = 0,
+  lastEvent,
 }: NavigationProps) {
+<<<<<<< Updated upstream
   const wallet = useWalletConnect();
   const navItems: Array<{ id: string; label: string }> = [
     { id: "agent", label: "Overview" },
@@ -35,10 +44,21 @@ export function Navigation({
     { id: "guardrails", label: "Guardrails & Ledger" },
     { id: "ops", label: "Postal Ops Hub" },
   ];
+=======
+  const pageTitles: Record<string, string> = {
+    hero: "Overview",
+    agent: "Overview",
+    send: "Send Letter",
+    guardrails: "Guardrails & Ledger",
+    ops: "Postal Ops Hub",
+  };
+
+  const currentTitle = pageTitles[activePage] || "Overview";
+>>>>>>> Stashed changes
 
   return (
     <header className="app-nav-header">
-      {/* Left: Brand Logo */}
+      {/* Left: Brand Logo & Context Breadcrumb */}
       <div className="nav-brand-wrap">
         <div
           className="nav-brand-logo"
@@ -53,36 +73,26 @@ export function Navigation({
             <div className="brand-subtitle">Autonomous Mail &amp; x402</div>
           </div>
         </div>
+
+        {/* Global Breadcrumb Separator & Active Workspace */}
+        <div className="nav-breadcrumb-divider">/</div>
+        <div className="nav-breadcrumb-crumb">
+          <span className="nav-breadcrumb-section">Workspace</span>
+          <span className="nav-breadcrumb-sub">›</span>
+          <span className="nav-breadcrumb-current">{currentTitle}</span>
+        </div>
+
+        {/* Global Network Pill Badge */}
+        <div className="nav-protocol-pill" title="Connected to Algorand TestNet via x402 facilitator">
+          <span className="protocol-dot">●</span>
+          <span className="protocol-text">Algorand TestNet</span>
+          <span className="protocol-tag">x402</span>
+        </div>
       </div>
 
-      {/* Center: Underlined Navigation Tabs with Green Active Indicator */}
-      <nav className="nav-tabs-clean" role="tablist" aria-label="Main Navigation">
-        {navItems.map((item) => {
-          const isActive = activePage === item.id || (activePage === "hero" && item.id === "agent");
-          return (
-            <button
-              key={item.id}
-              role="tab"
-              aria-selected={isActive}
-              className={`nav-tab-clean ${isActive ? "is-active" : ""}`}
-              onClick={() => onSelectPage(item.id)}
-              type="button"
-            >
-              <span>{item.label}</span>
-              {isActive && <div className="nav-active-pill-bar" />}
-              {item.id === "agent" && unreadInboundCount > 0 && (
-                <span className="nav-tab-badge">{unreadInboundCount}</span>
-              )}
-              {item.id === "guardrails" && guardrailBlocked && (
-                <span className="nav-tab-alert-dot" title="Guardrail Blocked">!</span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Right: Currency Toggle, Fee Rates, and Agent Chat Button */}
+      {/* Right: Tree Growing Badge, Currency Toggle, Fee Rates, and Agent Chat Button */}
       <div className="nav-utilities">
+<<<<<<< Updated upstream
         <button
           type="button"
           className="nav-chat-pill-btn"
@@ -91,6 +101,14 @@ export function Navigation({
         >
           {wallet.status === "awaiting_approval" ? "Approve in Pera…" : wallet.status === "settling" ? "Settling…" : wallet.address ? `Wallet ${wallet.address.slice(0, 5)}…${wallet.address.slice(-4)}` : "Connect Wallet"}
         </button>
+=======
+        {/* Dynamic Tree Growing Animation Badge */}
+        <NavEcoTreeBadge
+          treesCount={treesCount}
+          lastEvent={lastEvent}
+          onClick={() => onSelectPage("agent")}
+        />
+>>>>>>> Stashed changes
         {/* Segmented Currency Selector */}
         <div className="currency-selector" role="group" aria-label="Payment Token">
           <button

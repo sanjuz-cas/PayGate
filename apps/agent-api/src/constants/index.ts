@@ -4,8 +4,8 @@
  */
 
 // Port configurations
-export const DEFAULT_AGENT_PORT = 3001;
-export const DEFAULT_SERVICE_PORT = 3000;
+export const DEFAULT_AGENT_PORT = 4022;
+export const DEFAULT_SERVICE_PORT = 4021;
 
 // Algorand network URLs
 export const ALGOD_TESTNET_URL = "https://testnet-api.algonode.cloud";

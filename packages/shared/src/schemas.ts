@@ -274,6 +274,23 @@ export const serviceStateSchema = z.object({
     .nullable(),
 });
 
+export const ecoContributionSchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  amountUsd: z.number(),
+  treesCount: z.number(),
+  txid: z.string(),
+  recipientAddress: z.string(),
+  createdAt: z.string(),
+});
+
+export const ecoStatsSchema = z.object({
+  totalTreesPlanted: z.number(),
+  totalContributedUsd: z.number(),
+  causeAddress: z.string(),
+  recentContributions: z.array(ecoContributionSchema),
+});
+
 export type Address = z.infer<typeof addressSchema>;
 export type AgentRegistrationInput = z.infer<typeof agentRegistrationSchema>;
 export type AgentSendLetterInput = z.infer<typeof agentSendLetterSchema>;
@@ -291,6 +308,8 @@ export type ServiceState = z.infer<typeof serviceStateSchema>;
 export type WebhookDeliveryRecord = z.infer<typeof webhookDeliverySchema>;
 export type AgentGuardrail = z.infer<typeof agentGuardrailSchema>;
 export type AutonomyDecision = z.infer<typeof autonomyDecisionSchema>;
+export type EcoContribution = z.infer<typeof ecoContributionSchema>;
+export type EcoStats = z.infer<typeof ecoStatsSchema>;
 export type InternalInboundLetterScanExtractResponse = z.infer<
   typeof internalInboundLetterScanExtractResponseSchema
 >;

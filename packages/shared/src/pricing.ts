@@ -6,15 +6,15 @@ export const ROUTE_PRICES = {
 
 export const EURD_ASA_ID = "1221682136";
 export const ROUTE_PRICES_EURD = {
-  registration:   { amount: "4", asset: EURD_ASA_ID },
+  registration: { amount: "4", asset: EURD_ASA_ID },
   outboundLetter: { amount: "1", asset: EURD_ASA_ID },
-  inboundUnlock:  { amount: "2", asset: EURD_ASA_ID },
+  inboundUnlock: { amount: "2", asset: EURD_ASA_ID },
 } as const;
 
 export const ROUTE_PRICES_EURD_DISPLAY = {
-  registration:   "€0.04",
+  registration: "€0.04",
   outboundLetter: "€0.01",
-  inboundUnlock:  "€0.02",
+  inboundUnlock: "€0.02",
 } as const;
 
 export const ROUTE_KEYS = {
@@ -35,3 +35,8 @@ export const ALGORAND_MAINNET_EXPLORER_BASE_URL = "https://explorer.perawallet.a
 
 export const EURD_FACILITATOR_URL = "https://x402algo.ai.quantozpay.com";
 export const ALGORAND_MAINNET_QUANTOZ = "algorand:mainnet";
+
+export const ECO_CAUSE_ADDRESS = "JJUHJKQ2VQJAA4FK5CPKUHGK5BXY5FF2IREWFN64N62JZFHL3UPMBGAFZE";
+export const ECO_CONTRIBUTION_USDC = 0.01;
+export const USDC_TESTNET_ASA_ID = 10458941;
+

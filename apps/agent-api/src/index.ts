@@ -45,10 +45,7 @@ import {
   getRecentAutonomyDecisions,
   recordAutonomyDecision,
 } from "./lib/autonomy.js";
-
-import { toClientAvmSigner } from "@x402-avm/avm";
-import { mnemonicToPrivateKeyBase64 } from "./lib/wallet.js";
-import { createWalletApprovalManager, type AvmSigner } from "./lib/wallet-approval.js";
+import { dispatchEcoContribution, getEcoStats } from "./lib/eco-service.js";
 
 const env = loadAgentEnv(process.env);
 const { db } = createAgentDb(env.AGENT_DB_PATH);
@@ -125,10 +122,9 @@ app.get("/state", async (c) => {
     return unauthorized;
   }
 
-  const walletAddress = walletApprovals.status().address;
-  void refreshAgentBalances(env, walletAddress).catch(() => {});
-  await juicebag.syncState(db).catch(() => {});
-  return c.json(await buildAgentState({ db, env, walletAddress }));
+  void refreshAgentBalances(env).catch(() => { });
+  await juicebag.syncState(db).catch(() => { });
+  return c.json(await buildAgentState({ db, env }));
 });
 
 app.get("/balances", (c) => {
@@ -137,9 +133,12 @@ app.get("/balances", (c) => {
     return unauthorized;
   }
 
-  const walletAddress = walletApprovals.status().address;
-  void refreshAgentBalances(env, walletAddress).catch(() => {});
-  return c.json(getCachedAgentBalances(env, walletAddress));
+  void refreshAgentBalances(env).catch(() => { });
+  return c.json(getCachedAgentBalances(env));
+});
+
+app.get("/eco-stats", async (c) => {
+  return c.json(await getEcoStats(db));
 });
 
 app.get("/spend", async (c) => {
@@ -265,7 +264,7 @@ app.post("/actions/register", async (c) => {
     network,
   });
 
-  void refreshAgentBalances(env).catch(() => {});
+  void refreshAgentBalances(env).catch(() => { });
   return c.json(await buildAgentState({ db, env }), 201);
 });
 
@@ -339,6 +338,13 @@ app.post("/actions/send-letter", async (c) => {
       txid,
       status: "settled",
     });
+
+    void dispatchEcoContribution({
+      db,
+      env,
+      events,
+      action: "send-letter",
+    }).catch(() => {});
   }
 
   await events.publish({
@@ -348,7 +354,7 @@ app.post("/actions/send-letter", async (c) => {
     network: sendNetwork,
   });
 
-  void refreshAgentBalances(env).catch(() => {});
+  void refreshAgentBalances(env).catch(() => { });
   return c.json(await buildAgentState({ db, env }));
 });
 
@@ -430,6 +436,13 @@ app.post("/actions/unlock-letter", async (c) => {
       txid,
       status: "settled",
     });
+
+    void dispatchEcoContribution({
+      db,
+      env,
+      events,
+      action: "unlock-letter",
+    }).catch(() => {});
   }
 
   await events.publish({
@@ -439,7 +452,7 @@ app.post("/actions/unlock-letter", async (c) => {
     network: unlockNetwork,
   });
 
-  void refreshAgentBalances(env).catch(() => {});
+  void refreshAgentBalances(env).catch(() => { });
   return c.json(await buildAgentState({ db, env }));
 });
 
@@ -467,7 +480,7 @@ app.post("/actions/ignore-letter", async (c) => {
     message: `Ignored inbound letter ${parsed.data.letterId}`,
   });
 
-  void refreshAgentBalances(env).catch(() => {});
+  void refreshAgentBalances(env).catch(() => { });
   return c.json(await buildAgentState({ db, env }));
 });
 
@@ -676,7 +689,7 @@ app.post("/webhooks/incoming-mail", async (c) => {
           });
 
           await recordAutonomyDecision(db, decision, true);
-          void refreshAgentBalances(env).catch(() => {});
+          void refreshAgentBalances(env).catch(() => { });
         } catch (err) {
           console.error(`[agent:autonomy] Autonomous unlock failed for letter ${payload.letter.letterId}:`, err);
           await recordAutonomyDecision(db, decision, false);
