@@ -3,11 +3,8 @@ import {
   ROUTE_PRICES,
   ROUTE_PRICES_EURD_DISPLAY,
 } from "@juicebag-mail/shared";
-<<<<<<< Updated upstream
 import { useWalletConnect } from "../wallet/WalletConnectContext";
-=======
 import { NavEcoTreeBadge } from "./NavEcoTreeBadge";
->>>>>>> Stashed changes
 
 export type NavPage = "hero" | "agent" | "send" | "guardrails" | "ops";
 
@@ -36,15 +33,8 @@ export function Navigation({
   treesCount = 0,
   lastEvent,
 }: NavigationProps) {
-<<<<<<< Updated upstream
   const wallet = useWalletConnect();
-  const navItems: Array<{ id: string; label: string }> = [
-    { id: "agent", label: "Overview" },
-    { id: "send", label: "Send Letter" },
-    { id: "guardrails", label: "Guardrails & Ledger" },
-    { id: "ops", label: "Postal Ops Hub" },
-  ];
-=======
+
   const pageTitles: Record<string, string> = {
     hero: "Overview",
     agent: "Overview",
@@ -54,7 +44,6 @@ export function Navigation({
   };
 
   const currentTitle = pageTitles[activePage] || "Overview";
->>>>>>> Stashed changes
 
   return (
     <header className="app-nav-header">
@@ -90,9 +79,16 @@ export function Navigation({
         </div>
       </div>
 
-      {/* Right: Tree Growing Badge, Currency Toggle, Fee Rates, and Agent Chat Button */}
+      {/* Right: Tree Growing Badge, Wallet, Currency Toggle, Fee Rates, and Agent Chat Button */}
       <div className="nav-utilities">
-<<<<<<< Updated upstream
+        {/* Dynamic Tree Growing Animation Badge */}
+        <NavEcoTreeBadge
+          treesCount={treesCount}
+          lastEvent={lastEvent}
+          onClick={() => onSelectPage("agent")}
+        />
+
+        {/* Pera Wallet Connect / Disconnect */}
         <button
           type="button"
           className="nav-chat-pill-btn"
@@ -101,14 +97,7 @@ export function Navigation({
         >
           {wallet.status === "awaiting_approval" ? "Approve in Pera…" : wallet.status === "settling" ? "Settling…" : wallet.address ? `Wallet ${wallet.address.slice(0, 5)}…${wallet.address.slice(-4)}` : "Connect Wallet"}
         </button>
-=======
-        {/* Dynamic Tree Growing Animation Badge */}
-        <NavEcoTreeBadge
-          treesCount={treesCount}
-          lastEvent={lastEvent}
-          onClick={() => onSelectPage("agent")}
-        />
->>>>>>> Stashed changes
+
         {/* Segmented Currency Selector */}
         <div className="currency-selector" role="group" aria-label="Payment Token">
           <button

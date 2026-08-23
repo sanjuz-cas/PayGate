@@ -46,6 +46,9 @@ import {
   recordAutonomyDecision,
 } from "./lib/autonomy.js";
 import { dispatchEcoContribution, getEcoStats } from "./lib/eco-service.js";
+import { createWalletApprovalManager } from "./lib/wallet-approval.js";
+import { mnemonicToPrivateKeyBase64 } from "./lib/wallet.js";
+import { toClientAvmSigner } from "@x402-avm/avm";
 
 const env = loadAgentEnv(process.env);
 const { db } = createAgentDb(env.AGENT_DB_PATH);

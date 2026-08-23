@@ -55,30 +55,23 @@ type PublishableEvent = (
     network?: string;
   }
   | {
-<<<<<<< Updated upstream
-      type: "x402.info";
-      message: string;
-      txid?: string;
-      network?: string;
-    }
-  | {
-      type: "wallet.signature_required";
-      message: string;
-      requestId?: string;
-      walletAddress?: string;
-      network?: string;
-    }
-  | {
-      type: "wallet.signature_approved";
-      message: string;
-      requestId?: string;
-      walletAddress?: string;
-      network?: string;
-    }
-=======
     type: "x402.info";
     message: string;
     txid?: string;
+    network?: string;
+  }
+  | {
+    type: "wallet.signature_required";
+    message: string;
+    requestId?: string;
+    walletAddress?: string;
+    network?: string;
+  }
+  | {
+    type: "wallet.signature_approved";
+    message: string;
+    requestId?: string;
+    walletAddress?: string;
     network?: string;
   }
   | {
@@ -89,7 +82,6 @@ type PublishableEvent = (
     amountUsd?: number;
     treesCount?: number;
   }
->>>>>>> Stashed changes
 ) & {
   id?: string;
   createdAt?: string;
