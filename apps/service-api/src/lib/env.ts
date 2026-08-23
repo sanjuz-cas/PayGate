@@ -30,5 +30,8 @@ const envSchema = z.object({
 export type ServiceEnv = z.infer<typeof envSchema>;
 
 export function loadServiceEnv(input: NodeJS.ProcessEnv): ServiceEnv {
-  return envSchema.parse(input);
+  return envSchema.parse({
+    ...input,
+    SERVICE_PORT: input.PORT ?? input.SERVICE_PORT,
+  });
 }

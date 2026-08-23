@@ -1,0 +1,48 @@
+services:
+  # 🏢 Service API (Postal Hub & x402 Seller Service)
+  - type: web
+    name: paygate-service
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: pnpm install && pnpm --filter @juicebag-mail/shared build && pnpm --filter @juicebag-mail/service-api build
+    startCommand: pnpm --filter @juicebag-mail/service-api start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: SELLER_ADDRESS
+        sync: false # Set in Render Dashboard: your Algorand TestNet receiving wallet
+      - key: WEBHOOK_SECRET_MASTER_KEY
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: VITE_ADMIN_UI_TOKEN
+        value: juicebag-admin-demo-token
+      - key: FACILITATOR_URL
+        value: https://facilitator.goplausible.xyz
+      - key: ALGOD_URL
+        value: https://testnet-api.algonode.cloud
+
+  # 🤖 Agent API (Autonomous Buyer Agent)
+  - type: web
+    name: paygate-agent
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: pnpm install && pnpm --filter @juicebag-mail/shared build && pnpm --filter @juicebag-mail/agent-api build
+    startCommand: pnpm --filter @juicebag-mail/agent-api start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: AGENT_MNEMONIC
+        sync: false # Set in Render Dashboard: your 25-word Algorand TestNet paying mnemonic
+      - key: SERVICE_BASE_URL
+        sync: false # Set to https://<your-service-api>.onrender.com
+      - key: GROQ_API_KEY
+        sync: false # Optional: your Groq API Key (gsk_...) for Agent Chat
+      - key: VITE_AGENT_UI_TOKEN
+        value: juicebag-agent-ui-demo-token
+      - key: ALGOD_URL
+        value: https://testnet-api.algonode.cloud
+      - key: AUTONOMOUS_UNLOCK_ENABLED
+        value: "true"

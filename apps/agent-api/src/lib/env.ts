@@ -55,7 +55,10 @@ export type AgentEnv = z.infer<typeof envSchema> & {
 };
 
 export function loadAgentEnv(input: NodeJS.ProcessEnv): AgentEnv {
-  const parsed = envSchema.parse(input);
+  const parsed = envSchema.parse({
+    ...input,
+    AGENT_PORT: input.PORT ?? input.AGENT_PORT,
+  });
   const mnemonic = parsed.AGENT_MNEMONIC ?? parsed.AVM_MNEMONIC;
   if (!mnemonic) {
     throw new Error("AGENT_MNEMONIC or AVM_MNEMONIC is required");

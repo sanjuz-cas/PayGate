@@ -14,8 +14,14 @@ type ServiceStateWithPaymentOptions = ServiceState & {
   };
 };
 
-const agentApiUrl = import.meta.env.AGENT_API_URL ?? "http://localhost:4022";
-const serviceApiUrl = import.meta.env.SERVICE_API_URL ?? "http://localhost:4021";
+const agentApiUrl =
+  import.meta.env.VITE_AGENT_API_URL ??
+  import.meta.env.AGENT_API_URL ??
+  "http://localhost:4022";
+const serviceApiUrl =
+  import.meta.env.VITE_SERVICE_API_URL ??
+  import.meta.env.SERVICE_API_URL ??
+  "http://localhost:4021";
 const agentUiToken =
   import.meta.env.VITE_AGENT_UI_TOKEN ?? "juicebag-agent-ui-demo-token";
 const adminUiToken =

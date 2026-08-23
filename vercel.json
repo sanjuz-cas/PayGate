@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm --filter @juicebag-mail/shared build && pnpm --filter @juicebag-mail/demo-ui build",
+  "outputDirectory": "apps/demo-ui/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
