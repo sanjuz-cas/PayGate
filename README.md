@@ -73,6 +73,21 @@ Agent acts on the verified result within its budget & triggers an EcoGPT tree do
 
 ---
 
+## 🌱 EcoGPT: carbon-negative by default
+
+Every service PayGate's agent pays for is a real, metered transaction — which means every transaction is also a clean hook to attach a real-world outcome, instead of an opaque monthly "impact" claim bolted onto a subscription plan.
+
+That's what the EcoGPT integration does: on **every letter transaction**, PayGate automatically dispatches a small on-chain micro-donation ($0.01 USDC) to a verified tree-planting cause, alongside the payment for the service itself.
+
+- **Automatic, not opt-in per action** — the donation fires as part of the same transaction flow as the service payment, so it can't be skipped or forgotten.
+- **On-chain and verifiable** — like the service payments themselves, the donation settles on Algorand and is checkable via Pera Explorer, not just reported in a dashboard.
+- **Scales with usage, not time** — because it's tied to actual agent activity (per letter, per verification) rather than a flat monthly fee, impact grows exactly in step with what the agent actually does.
+- **Already live in the demo flow** — see step 8 in the [demo flow](#-concrete-demo-flow) above ("Agent acts on the verified result within its budget & triggers an EcoGPT tree donation 🌱").
+
+This is the same core idea as PayGate's spending model applied to sustainability: pay-per-use, on-chain, and verifiable — no flat fee, no vague "we plant trees" claim without a receipt.
+
+---
+
 ## 🎯 Being upfront about scope
 
 Given hackathon time constraints, we prioritized getting one core payment flow — address verification & mailbox registration — fully real and verifiable end-to-end, genuinely signed, settled, and checkable on-chain via Pera Explorer, rather than three partially-working ones. We're extending the same verified x402 pattern across all secondary service endpoints next.
