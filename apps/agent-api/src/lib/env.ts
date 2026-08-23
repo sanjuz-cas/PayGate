@@ -80,10 +80,16 @@ export function loadAgentEnv(input: NodeJS.ProcessEnv): AgentEnv {
   };
 
   const parsed = envSchema.parse(normalizedInput);
-  const mnemonic = parsed.AGENT_MNEMONIC ?? parsed.AVM_MNEMONIC;
-  if (!mnemonic) {
+  const rawMnemonic = parsed.AGENT_MNEMONIC ?? parsed.AVM_MNEMONIC;
+  if (!rawMnemonic) {
     throw new Error("AGENT_MNEMONIC or AVM_MNEMONIC is required");
   }
+
+  const mnemonic = rawMnemonic
+    .trim()
+    .replace(/^["']+|["']+$/g, "")
+    .replace(/\\"/g, "")
+    .replace(/\s+/g, " ");
 
   return {
     ...parsed,

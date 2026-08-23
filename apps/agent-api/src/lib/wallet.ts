@@ -1,12 +1,22 @@
 import algosdk from "algosdk";
 
+export function cleanMnemonic(mnemonic: string): string {
+  if (!mnemonic || typeof mnemonic !== "string") return "";
+  return mnemonic
+    .trim()
+    .replace(/^["']+|["']+$/g, "") // strip surrounding quotes
+    .replace(/\\"/g, "")            // strip escaped quotes
+    .replace(/\s+/g, " ");          // normalize whitespace
+}
+
 export function mnemonicToPrivateKeyBase64(mnemonic: string) {
-  const account = algosdk.mnemonicToSecretKey(mnemonic);
+  const account = algosdk.mnemonicToSecretKey(cleanMnemonic(mnemonic));
   return Buffer.from(account.sk).toString("base64");
 }
 
 export function mnemonicToAddress(mnemonic: string) {
-  return algosdk.mnemonicToSecretKey(mnemonic).addr.toString();
+  const account = algosdk.mnemonicToSecretKey(cleanMnemonic(mnemonic));
+  return account.addr.toString();
 }
 
 type AccountData = {
