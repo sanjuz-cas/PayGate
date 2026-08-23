@@ -58,3 +58,8 @@ ehthumbs.db
 *.bak
 *.tmp
 *.temp
+
+# Markdown files & temporary documentation
+*.md
+docs/
+!README.md
