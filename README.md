@@ -53,14 +53,18 @@ x402 payment settles on Algorand TestNet, verified live on-chain
 Agent acts on the verified result within its budget & triggers EcoGPT tree donation 🌱
 ```
 
+> [!NOTE]
+> **Why physical postal mail in the demo?**  
+> *"Physical postal mail was our visual demo trigger because it proves a complex real-world pipeline. PayGate is an input-agnostic trust and micro-payment protocol — the exact same agent can ingest real Gmails, supplier PDF invoices, Slack requests, or WhatsApp messages, and autonomously buy verification services on Algorand via x402!"*
+
 ---
 
 ## ⚡ Why This Matters Technically
 
 - **Real x402 payment flow**: Live on Algorand TestNet (USDC ASA ID `10458941`) and MainNet (Quantoz EURD ASA ID `1221682136`), settled through the x402 facilitator.
-- **Genuine LLM tool-use harness**: The agent's decision-making is powered by an LLM reasoning loop (Groq SDK / Llama-3 / Mixtral) that evaluates incoming mail context and chooses which tools to execute.
+- **Genuine LLM tool-use harness**: The agent's decision-making is powered by an LLM reasoning loop (Groq SDK / Llama-3 / Mixtral) that evaluates incoming document context and chooses which tools to execute.
 - **Non-custodial by design**: The agent never stores a private key. A connected non-custodial wallet (Pera) authorizes spend, with hardcoded 24-hour spending guardrails limiting what the agent can request.
-- **Physical-to-digital bridge**: We use physical mail as our demo trigger because it's a concrete, relatable way to show an autonomous incoming real-world event — the actual product is the trust/verification payment layer underneath.
+- **Input-agnostic trust layer**: We use physical mail as our demo trigger because it's a concrete, relatable way to show an autonomous incoming event — the actual product is the trust/verification micropayment layer underneath (usable across Gmail, PDFs, Slack, or webhooks).
 - **EcoGPT climate action**: Automated on-chain micro-donations ($0.01 USDC) dispatched to a verified tree planting cause on every letter transaction, creating verifiable carbon-negative AI operations.
 
 ---
