@@ -12,6 +12,43 @@ importers:
         specifier: ^11.0.0
         version: 11.0.0
 
+  apps/address-verify-api:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.13.8
+        version: 1.19.14(hono@4.12.23)
+      '@juicebag-mail/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@x402-avm/avm':
+        specifier: ^2.6.1
+        version: 2.6.1
+      '@x402-avm/core':
+        specifier: ^2.6.1
+        version: 2.6.1
+      '@x402-avm/hono':
+        specifier: ^2.6.1
+        version: 2.6.1(ethers@6.16.0)(hono@4.12.23)(typescript@5.9.3)
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
+      hono:
+        specifier: ^4.12.9
+        version: 4.12.23
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.30
+        version: 22.19.20
+      tsx:
+        specifier: ^4.19.4
+        version: 4.22.4
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   apps/agent-api:
     dependencies:
       '@anthropic-ai/sdk':

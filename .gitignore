@@ -1,49 +1,45 @@
 ```
+# Build artifacts
+tsconfig.tsbuildinfo
+dist/
+build/
+target/
+
 # Dependencies
 node_modules/
 .pnpm-store/
 .npm/
 .yarn/
+.yalc/
+yalc.lock
 
-# Build outputs
-dist/
-build/
-coverage/
-.nyc_output/
-.eslintcache
-
-# TypeScript
-*.tsbuildinfo
-*.js.map
-*.d.ts
+# Logs and temp files
+*.log
+*.tmp
+*.temp
 
 # Environment variables
 .env
 .env.local
-.env.*
+*.env.*
 
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# IDE
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Testing
+# Coverage
 coverage/
-.nyc_output/
-.jest/
+htmlcov/
+.coverage
 
-# Temporary files
-*.tmp
-*~
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Package lock files (already tracked in your repo but good to have in case)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 ```
