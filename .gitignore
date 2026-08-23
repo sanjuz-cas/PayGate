@@ -29,6 +29,7 @@ venv/
 .env
 .env.local
 .env.*
+scripts/accounts.json
 
 # IDE specific
 .vscode/
@@ -68,3 +69,5 @@ htmlcov/
 *.tar.xz
 *.tar.zst
 ```
+
+scripts/accounts.json
