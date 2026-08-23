@@ -394,9 +394,21 @@ export function AgentPage({
               type="submit"
               className="dash-full-btn"
               disabled={isRegistered || busyActions.has("register")}
+              style={{
+                background: isRegistered ? undefined : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                color: isRegistered ? undefined : "#ffffff",
+                fontWeight: 700,
+                cursor: isRegistered ? "default" : "pointer"
+              }}
             >
-              <span className="btn-icon">🔏</span>
-              <span>{isRegistered ? "Identity Registered & Locked" : "Save Identity"}</span>
+              <span className="btn-icon">{isRegistered ? "✓" : ""}</span>
+              <span>
+                {isRegistered
+                  ? "Mailbox Registered & Active"
+                  : busyActions.has("register")
+                  ? "Registering Mailbox on Algorand..."
+                  : `Register Mailbox (${selectedCurrency === "eurd" ? "€0.05 EURD" : "$1.00 USDC"})`}
+              </span>
             </button>
           </form>
         </div>
