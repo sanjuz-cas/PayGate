@@ -60,6 +60,20 @@ type PublishableEvent = (
       txid?: string;
       network?: string;
     }
+  | {
+      type: "wallet.signature_required";
+      message: string;
+      requestId?: string;
+      walletAddress?: string;
+      network?: string;
+    }
+  | {
+      type: "wallet.signature_approved";
+      message: string;
+      requestId?: string;
+      walletAddress?: string;
+      network?: string;
+    }
 ) & {
   id?: string;
   createdAt?: string;

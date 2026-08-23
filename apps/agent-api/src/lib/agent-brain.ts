@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { z } from "zod";
 
 import type { AgentEnv } from "./env.js";
@@ -43,109 +43,121 @@ export interface AgentToolUseStep {
 }
 
 // Define each tool's schema and description
-const TOOL_DEFINITIONS: Record<ToolName, Anthropic.Tool> = {
+const TOOL_DEFINITIONS: Record<ToolName, Groq.Chat.ChatCompletionTool> = {
   verify_address: {
-    name: "verify_address",
-    description: "Verify a postal address format and validity before sending mail. Use this when the address looks unusual, international, or you're unsure if it's properly formatted. Costs $0.02 USDC. Returns validation result with confidence score and any issues found.",
-    input_schema: {
-      type: "object",
-      properties: {
-        street1: {
-          type: "string",
-          description: "Primary street address (e.g., '123 Main St' or 'Hauptstraße 45')",
+    type: "function",
+    function: {
+      name: "verify_address",
+      description: "Verify a postal address format and validity before sending mail. Use this when the address looks unusual, international, or you're unsure if it's properly formatted. Costs $0.02 USDC. Returns validation result with confidence score and any issues found.",
+      parameters: {
+        type: "object",
+        properties: {
+          street1: {
+            type: "string",
+            description: "Primary street address (e.g., '123 Main St' or 'Hauptstraße 45')",
+          },
+          street2: {
+            type: "string",
+            description: "Optional secondary address (apartment, suite, etc.)",
+          },
+          postalCode: {
+            type: "string",
+            description: "Postal/ZIP code appropriate for the country",
+          },
+          city: {
+            type: "string",
+            description: "City or locality name",
+          },
+          country: {
+            type: "string",
+            description: "ISO 3166-1 alpha-2 country code (e.g., 'US', 'DE', 'GB', 'FR')",
+          },
         },
-        street2: {
-          type: "string",
-          description: "Optional secondary address (apartment, suite, etc.)",
-        },
-        postalCode: {
-          type: "string",
-          description: "Postal/ZIP code appropriate for the country",
-        },
-        city: {
-          type: "string",
-          description: "City or locality name",
-        },
-        country: {
-          type: "string",
-          description: "ISO 3166-1 alpha-2 country code (e.g., 'US', 'DE', 'GB', 'FR')",
-        },
-      },
-      required: ["street1", "postalCode", "city", "country"],
-    },
+        required: ["street1", "postalCode", "city", "country"],
+      }
+    }
   },
 
   send_letter: {
-    name: "send_letter",
-    description: "Send a physical letter to a verified address. Use this after address verification passes (if performed) or when sending to a known-good address. Costs $0.05 USDC. Requires recipient name, full address, and letter content.",
-    input_schema: {
-      type: "object",
-      properties: {
-        recipientName: {
-          type: "string",
-          description: "Full name of the letter recipient",
+    type: "function",
+    function: {
+      name: "send_letter",
+      description: "Send a physical letter to a verified address. Use this after address verification passes (if performed) or when sending to a known-good address. Costs $0.05 USDC. Requires recipient name, full address, and letter content.",
+      parameters: {
+        type: "object",
+        properties: {
+          recipientName: {
+            type: "string",
+            description: "Full name of the letter recipient",
+          },
+          recipientAddress: {
+            type: "string",
+            description: "Complete mailing address (street, city, postal code, country)",
+          },
+          content: {
+            type: "string",
+            description: "The actual letter content to be sent",
+          },
+          currency: {
+            type: "string",
+            enum: ["usdc", "eurd"],
+            description: "Payment currency (default: usdc)",
+          },
         },
-        recipientAddress: {
-          type: "string",
-          description: "Complete mailing address (street, city, postal code, country)",
-        },
-        content: {
-          type: "string",
-          description: "The actual letter content to be sent",
-        },
-        currency: {
-          type: "string",
-          enum: ["usdc", "eurd"],
-          description: "Payment currency (default: usdc)",
-        },
-      },
-      required: ["recipientName", "recipientAddress", "content"],
-    },
+        required: ["recipientName", "recipientAddress", "content"],
+      }
+    }
   },
 
   unlock_letter: {
-    name: "unlock_letter",
-    description: "Unlock an inbound letter to view its contents by paying the unlock fee. Use this for important mail that requires human review or contains critical information. Costs $0.20 USDC. Only call with a valid letterId from pending inbound mail.",
-    input_schema: {
-      type: "object",
-      properties: {
-        letterId: {
-          type: "string",
-          description: "Unique identifier of the inbound letter to unlock",
+    type: "function",
+    function: {
+      name: "unlock_letter",
+      description: "Unlock an inbound letter to view its contents by paying the unlock fee. Use this for important mail that requires human review or contains critical information. Costs $0.20 USDC. Only call with a valid letterId from pending inbound mail.",
+      parameters: {
+        type: "object",
+        properties: {
+          letterId: {
+            type: "string",
+            description: "Unique identifier of the inbound letter to unlock",
+          },
+          currency: {
+            type: "string",
+            enum: ["usdc", "eurd"],
+            description: "Payment currency (default: usdc)",
+          },
         },
-        currency: {
-          type: "string",
-          enum: ["usdc", "eurd"],
-          description: "Payment currency (default: usdc)",
-        },
-      },
-      required: ["letterId"],
-    },
+        required: ["letterId"],
+      }
+    }
   },
 
   register_mailbox: {
-    name: "register_mailbox",
-    description: "Register a new mailbox identity with the Juicebag Mail network. This is a one-time setup action to establish your legal identity and receive mail. Costs $1.00 USDC (or €0.05 EURD). Only use if not already registered.",
-    input_schema: {
-      type: "object",
-      properties: {
-        legalName: {
-          type: "string",
-          description: "Full legal name for registration",
+    type: "function",
+    function: {
+      name: "register_mailbox",
+      description: "Register a new mailbox identity with the Juicebag Mail network. This is a one-time setup action to establish your legal identity and receive mail. Costs $1.00 USDC (or €0.05 EURD). Only use if not already registered.",
+      parameters: {
+        type: "object",
+        properties: {
+          legalName: {
+            type: "string",
+            description: "Full legal name for registration",
+          },
+          email: {
+            type: "string",
+            format: "email",
+            description: "Email address for notifications",
+          },
+          currency: {
+            type: "string",
+            enum: ["usdc", "eurd"],
+            description: "Payment currency (default: usdc)",
+          },
         },
-        email: {
-          type: "string",
-          format: "email",
-          description: "Email address for notifications",
-        },
-        currency: {
-          type: "string",
-          enum: ["usdc", "eurd"],
-          description: "Payment currency (default: usdc)",
-        },
-      },
-      required: ["legalName", "email"],
-    },
+        required: ["legalName", "email"],
+      }
+    }
   },
 };
 
@@ -352,13 +364,13 @@ export async function runAgentBrain(
   env: AgentEnv,
   db: AgentDatabase,
 ): Promise<AgentBrainResponse> {
-  const anthropicApiKey = env.ANTHROPIC_API_KEY;
+  const anthropicApiKey = env.GROQ_API_KEY;
   
   if (!anthropicApiKey) {
-    throw new Error("ANTHROPIC_API_KEY is required for agent brain tool use");
+    throw new Error("GROQ_API_KEY is required for agent brain tool use");
   }
 
-  const client = new Anthropic({ apiKey: anthropicApiKey });
+  const client = new Groq({ apiKey: anthropicApiKey });
   const steps: AgentToolUseStep[] = [];
   const allTxids: string[] = [];
   let totalCostUsd = 0;
@@ -382,7 +394,7 @@ AVAILABLE TOOLS:
 
 Respond using tool_use blocks when you want to invoke a tool. Include your reasoning in natural language before each tool call. When done, provide a final text response summarizing what you did.`;
 
-  const conversationHistory: Anthropic.MessageParam[] = [
+  const conversationHistory: Groq.Chat.ChatCompletionMessageParam[] = [
     {
       role: "user",
       content: request.taskDescription,
@@ -410,7 +422,7 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
     });
   }
 
-  const tools: Anthropic.Tool[] = Object.values(TOOL_DEFINITIONS);
+  const tools: Groq.Chat.ChatCompletionTool[] = Object.values(TOOL_DEFINITIONS);
 
   // SAFETY CHECK #2: Hard max tool-call limit per task to prevent runaway loops
   const MAX_TOOL_CALLS = 8;
@@ -422,97 +434,85 @@ Respond using tool_use blocks when you want to invoke a tool. Include your reaso
   while (iterationCount < maxIterations) {
     iterationCount++;
 
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+    const response = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       max_tokens: 1000,
-      system: systemPrompt,
-      messages: conversationHistory,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...conversationHistory
+      ],
       tools,
-      tool_choice: { type: "auto" },
+      tool_choice: "auto",
     });
 
     // Process response content
-    for (const block of response.content) {
-      if (block.type === "text") {
-        // Check if this looks like a final answer (no more tool calls coming)
-        if (!conversationHistory.some((h) => h.role === "assistant")) {
-          finalAnswer = block.text;
-        }
-      } else if (block.type === "tool_use") {
-        toolCallCount++;
-        
-        // SAFETY CHECK #2: Enforce hard max tool-call limit
-        if (toolCallCount > MAX_TOOL_CALLS) {
-          console.warn(`[agent-brain] Tool call limit (${MAX_TOOL_CALLS}) reached, halting`);
-          finalAnswer += "\n\n[Task halted: Maximum tool call limit reached to prevent runaway spending]";
-          break;
-        }
-        
-        const toolName = block.name as ToolName;
-        const toolInput = block.input as Record<string, unknown>;
-        
-        // Extract reasoning from the last assistant message or use a default
-        const lastAssistantMsg = conversationHistory.filter((h) => h.role === "assistant").pop();
-        const reasoning = lastAssistantMsg?.content?.toString() || "Executing tool call";
+    const msg = response.choices[0].message;
+    const reasoning = msg.content || "";
+    
+    // Add assistant message to history
+    conversationHistory.push(msg);
 
-        const step: AgentToolUseStep = {
-          stepNumber: steps.length + 1,
-          modelReasoning: reasoning,
-          toolCall: {
-            name: toolName,
-            input: toolInput,
-          },
-          timestamp: new Date().toISOString(),
-        };
-
-        console.log(`[agent-brain] Step ${step.stepNumber}: Calling tool ${toolName} (call #${toolCallCount}/${MAX_TOOL_CALLS})`);
-        console.log(`[agent-brain] Reasoning: ${reasoning}`);
-        console.log(`[agent-brain] Input:`, JSON.stringify(toolInput, null, 2));
-
-        // Execute the actual tool with real x402 payment
-        const result = await executeTool(toolName, toolInput, env, db);
-        step.toolResult = result;
-
-        if (result.txid) {
-          allTxids.push(result.txid);
-          totalCostUsd += TOOL_COSTS[result.toolName];
-        }
-
-        steps.push(step);
-
-        // Add tool_use and tool_result to conversation history
-        conversationHistory.push({
-          role: "assistant",
-          content: [block],
-        });
-
-        conversationHistory.push({
-          role: "user",
-          content: [
-            {
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: result.success
-                ? JSON.stringify(result.result)
-                : `Error: ${result.error}${result.budgetBlocked ? " (Budget exceeded - cannot proceed with this action)" : ""}`,
-            },
-          ],
-        });
-
-        // Continue loop to let model process result and decide next action
-        break; // Break to continue the while loop with updated history
-      }
+    // If no tool calls, we're done
+    if (!msg.tool_calls || msg.tool_calls.length === 0) {
+      if (!finalAnswer) finalAnswer = reasoning || "Task completed.";
+      break;
     }
 
-    // If no tool_use blocks were found, we have a final answer
-    const hasToolUse = response.content.some((b) => b.type === "tool_use");
-    if (!hasToolUse) {
-      // Extract final text from response
-      const textBlock = response.content.find((b) => b.type === "text");
-      if (textBlock) {
-        finalAnswer = textBlock.text;
+    // Process tool calls
+    for (const toolCall of msg.tool_calls) {
+      toolCallCount++;
+      
+      if (toolCallCount > MAX_TOOL_CALLS) {
+        console.warn(`[agent-brain] Tool call limit (${MAX_TOOL_CALLS}) reached, halting`);
+        finalAnswer += "\n\n[Task halted: Maximum tool call limit reached to prevent runaway spending]";
+        break;
       }
-      break; // Exit the loop
+
+      const toolName = toolCall.function.name as ToolName;
+      let toolInput = {};
+      try {
+        toolInput = JSON.parse(toolCall.function.arguments);
+      } catch (e) {}
+
+      const step: AgentToolUseStep = {
+        stepNumber: steps.length + 1,
+        modelReasoning: reasoning || `Executing ${toolName}`,
+        toolCall: {
+          name: toolName,
+          input: toolInput as Record<string, unknown>,
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(`[agent-brain] Step ${step.stepNumber}: Calling tool ${toolName} (call #${toolCallCount}/${MAX_TOOL_CALLS})`);
+      console.log(`[agent-brain] Reasoning: ${reasoning}`);
+      console.log(`[agent-brain] Input:`, JSON.stringify(toolInput, null, 2));
+
+      // Execute the actual tool with real x402 payment
+      const result = await executeTool(toolName, toolInput, env, db);
+      step.toolResult = result;
+
+      if (result.txid) {
+        allTxids.push(result.txid);
+        totalCostUsd += TOOL_COSTS[result.toolName];
+      }
+
+      steps.push(step);
+
+      // Add tool_result to conversation history
+      conversationHistory.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        name: toolName,
+        content: result.success
+          ? JSON.stringify(result.result)
+          : `Error: ${result.error}${result.budgetBlocked ? " (Budget exceeded - cannot proceed with this action)" : ""}`,
+      } as any);
+
+      if (result.budgetBlocked) {
+        finalAnswer = `Halted: ${result.error}`;
+        break;
+      }
     }
     
     // Check if we hit the tool call limit mid-iteration

@@ -188,4 +188,84 @@ export const api = {
       },
     );
   },
+
+  // ─── Wallet Session (non-custodial Pera Wallet) ──────────────────────────
+
+  walletSession(address: string) {
+    return request<{ address: string }>(`${agentApiUrl}/wallet/session`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${agentUiToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ address }),
+    });
+  },
+
+  clearWalletSession() {
+    return fetch(`${agentApiUrl}/wallet/session`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${agentUiToken}` },
+    });
+  },
+
+  pendingSignatureRequests() {
+    return request<{
+      requests: Array<{
+        id: string;
+        walletAddress: string;
+        unsignedTransactionsBase64: string[];
+        indexesToSign: number[];
+        description: string;
+        expiresAt: string;
+      }>;
+    }>(`${agentApiUrl}/wallet/signature-requests`, {
+      headers: { Authorization: `Bearer ${agentUiToken}` },
+    });
+  },
+
+  approveSignatureRequest(requestId: string, signedTransactionsBase64: string[]) {
+    return request<{ ok: true }>(
+      `${agentApiUrl}/wallet/signature-requests/${encodeURIComponent(requestId)}/approve`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${agentUiToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ signedTransactionsBase64 }),
+      },
+    );
+  },
+
+  rejectSignatureRequest(requestId: string, reason?: string) {
+    return request<{ ok: true }>(
+      `${agentApiUrl}/wallet/signature-requests/${encodeURIComponent(requestId)}/reject`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${agentUiToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      },
+    );
+  },
+
+  // ─── Agent Chat (SSE streaming) ──────────────────────────────────────────
+
+  /**
+   * POST /actions/agent-chat — starts the agent brain tool-use loop.
+   * Returns the raw fetch Response so the caller can read the SSE stream.
+   * Events: started | step_completed | done | error
+   */
+  async agentChat(
+    taskDescription: string,
+    currency: "usdc" | "eurd" = "usdc",
+  ): Promise<Response> {
+    const response = await fetch(`${agentApiUrl}/actions/agent-chat`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ taskDescription, currency }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Agent chat failed with status ${response.status}`);
+    }
+    return response;
+  },
 };

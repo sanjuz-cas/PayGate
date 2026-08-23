@@ -26,13 +26,14 @@ async function main() {
   app.use(
     "*",
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: (origin) => origin || "*",
       allowHeaders: [
         "Authorization",
         "Content-Type",
         "PAYMENT-SIGNATURE",
         "X-PAYMENT",
       ],
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE"],
     }),
   );

@@ -23,6 +23,7 @@ export function parseLegalIdentity(value: string) {
 export async function buildAgentState(input: {
   db: AgentDatabase;
   env: AgentEnv;
+  walletAddress?: string | null;
 }): Promise<AgentState> {
   const [regRows, inboundRows, outboundRows, paymentRows, eventRows, guardrail, recentDecisions] = await Promise.all([
     input.db.select().from(registration).where(eq(registration.id, 1)).limit(1),
@@ -35,7 +36,7 @@ export async function buildAgentState(input: {
   ]);
 
   const reg = regRows[0] ?? null;
-  const balances = getCachedAgentBalances(input.env);
+  const balances = getCachedAgentBalances(input.env, input.walletAddress);
   const lastEvent = eventRows[0] ?? null;
 
   return agentStateSchema.parse({
@@ -58,7 +59,7 @@ export async function buildAgentState(input: {
     },
     guardrail,
     recentAutonomyDecisions: recentDecisions,
-    inboundLetters: inboundRows.map((row) => ({
+    inboundLetters: inboundRows.map((row: any) => ({
       id: row.id,
       mailboxId: row.mailboxId,
       fromName: row.fromName,
@@ -72,7 +73,7 @@ export async function buildAgentState(input: {
       ocrText: row.ocrText,
       notifiedAt: row.notifiedAt,
     })),
-    outboundLetters: outboundRows.map((row) => ({
+    outboundLetters: outboundRows.map((row: any) => ({
       id: row.id,
       mailboxId: row.mailboxId,
       recipient: JSON.parse(row.recipientJson),
@@ -83,7 +84,7 @@ export async function buildAgentState(input: {
       createdAt: row.createdAt,
       sentAt: row.sentAt,
     })),
-    recentPayments: paymentRows.map((row) => ({
+    recentPayments: paymentRows.map((row: any) => ({
       id: row.id,
       routeKey: row.routeKey,
       txid: row.txid,

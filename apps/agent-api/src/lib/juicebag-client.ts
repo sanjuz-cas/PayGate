@@ -35,6 +35,7 @@ import {
 import type { AgentEnv } from "./env.js";
 import { createId, nowIso } from "./ids.js";
 import { mnemonicToPrivateKeyBase64 } from "./wallet.js";
+import type { AvmSigner } from "./wallet-approval.js";
 
 type PaidFetchResult<T> = {
   data: T;
@@ -50,12 +51,12 @@ async function parseResponse<T>(response: Response): Promise<PaidFetchResult<T>>
   };
 }
 
-export function createJuicebagClient(env: AgentEnv) {
-  const signer = toClientAvmSigner(mnemonicToPrivateKeyBase64(env.mnemonic));
+export function createJuicebagClient(env: AgentEnv, signer?: AvmSigner) {
+  const resolvedSigner = signer ?? createDevSigner(env);
 
   const usdcClient = new x402Client();
   registerExactAvmScheme(usdcClient, {
-    signer,
+    signer: resolvedSigner,
     algodConfig: { algodUrl: env.ALGOD_URL },
     networks: [ALGORAND_TESTNET_CAIP2],
   });
@@ -87,7 +88,7 @@ export function createJuicebagClient(env: AgentEnv) {
 
   const eurdClient = new x402Client();
   registerExactAvmScheme(eurdClient, {
-    signer,
+    signer: resolvedSigner,
     algodConfig: { algodClient: eurdAlgodClient },
     networks: [ALGORAND_MAINNET_QUANTOZ],
   });
@@ -425,4 +426,18 @@ export function createJuicebagClient(env: AgentEnv) {
       return rows[0] ?? null;
     },
   };
+}
+
+function createDevSigner(env: AgentEnv) {
+  if (!env.ALLOW_DEV_MNEMONIC_SIGNER || !env.mnemonic) {
+    // Read-only methods still work. Payment attempts produce this explicit,
+    // safe error until the browser has connected a wallet.
+    return {
+      address: "",
+      async signTransactions() {
+        throw new Error("No wallet signer is available. Connect Pera Wallet before making an x402 payment.");
+      },
+    } satisfies AvmSigner;
+  }
+  return toClientAvmSigner(mnemonicToPrivateKeyBase64(env.mnemonic));
 }

@@ -3,6 +3,7 @@ import {
   ROUTE_PRICES,
   ROUTE_PRICES_EURD_DISPLAY,
 } from "@juicebag-mail/shared";
+import { useWalletConnect } from "../wallet/WalletConnectContext";
 
 export type NavPage = "hero" | "agent" | "send" | "guardrails" | "ops";
 
@@ -27,6 +28,7 @@ export function Navigation({
   unreadInboundCount,
   guardrailBlocked,
 }: NavigationProps) {
+  const wallet = useWalletConnect();
   const navItems: Array<{ id: string; label: string }> = [
     { id: "agent", label: "Overview" },
     { id: "send", label: "Send Letter" },
@@ -81,6 +83,14 @@ export function Navigation({
 
       {/* Right: Currency Toggle, Fee Rates, and Agent Chat Button */}
       <div className="nav-utilities">
+        <button
+          type="button"
+          className="nav-chat-pill-btn"
+          onClick={() => void (wallet.address ? wallet.disconnect() : wallet.connect())}
+          title={wallet.error ?? "Pera Wallet signs each x402 payment; PayGate never receives its private key."}
+        >
+          {wallet.status === "awaiting_approval" ? "Approve in Pera…" : wallet.status === "settling" ? "Settling…" : wallet.address ? `Wallet ${wallet.address.slice(0, 5)}…${wallet.address.slice(-4)}` : "Connect Wallet"}
+        </button>
         {/* Segmented Currency Selector */}
         <div className="currency-selector" role="group" aria-label="Payment Token">
           <button

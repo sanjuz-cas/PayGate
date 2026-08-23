@@ -11,6 +11,7 @@ import { registerExactAvmScheme } from "@x402-avm/avm/exact/client";
 
 import type { AgentEnv } from "./env.js";
 import { mnemonicToPrivateKeyBase64 } from "./wallet.js";
+import type { AvmSigner } from "./wallet-approval.js";
 
 export type ServiceRegistryEntry = {
   name: string;
@@ -39,12 +40,12 @@ export type AddressVerifyResponse = {
   issues: string[];
 };
 
-export function createServiceRegistryClient(env: AgentEnv) {
-  const signer = toClientAvmSigner(mnemonicToPrivateKeyBase64(env.mnemonic));
+export function createServiceRegistryClient(env: AgentEnv, signer?: AvmSigner) {
+  const resolvedSigner = signer ?? createDevSigner(env);
 
   const usdcClient = new x402Client();
   registerExactAvmScheme(usdcClient, {
-    signer,
+    signer: resolvedSigner,
     algodConfig: { algodUrl: env.ALGOD_URL },
     networks: [ALGORAND_TESTNET_CAIP2],
   });
@@ -124,4 +125,11 @@ export function createServiceRegistryClient(env: AgentEnv) {
       };
     },
   };
+}
+
+function createDevSigner(env: AgentEnv) {
+  if (!env.ALLOW_DEV_MNEMONIC_SIGNER || !env.mnemonic) {
+    throw new Error("No wallet signer is available. Connect Pera Wallet, or explicitly enable the dev-only mnemonic signer.");
+  }
+  return toClientAvmSigner(mnemonicToPrivateKeyBase64(env.mnemonic));
 }

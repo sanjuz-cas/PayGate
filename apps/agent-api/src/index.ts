@@ -46,18 +46,59 @@ import {
   recordAutonomyDecision,
 } from "./lib/autonomy.js";
 
+import { toClientAvmSigner } from "@x402-avm/avm";
+import { mnemonicToPrivateKeyBase64 } from "./lib/wallet.js";
+import { createWalletApprovalManager, type AvmSigner } from "./lib/wallet-approval.js";
+
 const env = loadAgentEnv(process.env);
 const { db } = createAgentDb(env.AGENT_DB_PATH);
 const events = createEventBus(db);
-const juicebag = createJuicebagClient(env);
+
+const walletApprovals = createWalletApprovalManager({
+  onSignatureRequired: async (request) => {
+    await events.publish({
+      type: "wallet.signature_required",
+      message: `Wallet approval required: ${request.description}`,
+      requestId: request.id,
+      walletAddress: request.walletAddress,
+    });
+  },
+  onSignatureApproved: async (request) => {
+    await events.publish({
+      type: "wallet.signature_approved",
+      message: `Wallet approved signature for ${request.description}`,
+      requestId: request.id,
+      walletAddress: request.walletAddress,
+    });
+  },
+});
+
+const juicebag = createJuicebagClient(env, {
+  get address() {
+    if (walletApprovals.status().connected) {
+      return walletApprovals.signer().address;
+    }
+    return env.mnemonic ? toClientAvmSigner(mnemonicToPrivateKeyBase64(env.mnemonic)).address : "";
+  },
+  async signTransactions(transactions, indexesToSign) {
+    if (walletApprovals.status().connected) {
+      return await walletApprovals.signer().signTransactions(transactions, indexesToSign);
+    }
+    if (env.mnemonic) {
+      return await toClientAvmSigner(mnemonicToPrivateKeyBase64(env.mnemonic)).signTransactions(transactions, indexesToSign);
+    }
+    throw new Error("No wallet signer is available. Connect Pera Wallet before making an x402 payment.");
+  },
+});
 
 const app = new Hono();
 
 app.use(
   "*",
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin) => origin || "*",
     allowHeaders: ["Authorization", "Content-Type"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   }),
 );
 
@@ -84,9 +125,10 @@ app.get("/state", async (c) => {
     return unauthorized;
   }
 
-  void refreshAgentBalances(env).catch(() => {});
+  const walletAddress = walletApprovals.status().address;
+  void refreshAgentBalances(env, walletAddress).catch(() => {});
   await juicebag.syncState(db).catch(() => {});
-  return c.json(await buildAgentState({ db, env }));
+  return c.json(await buildAgentState({ db, env, walletAddress }));
 });
 
 app.get("/balances", (c) => {
@@ -95,8 +137,9 @@ app.get("/balances", (c) => {
     return unauthorized;
   }
 
-  void refreshAgentBalances(env).catch(() => {});
-  return c.json(getCachedAgentBalances(env));
+  const walletAddress = walletApprovals.status().address;
+  void refreshAgentBalances(env, walletAddress).catch(() => {});
+  return c.json(getCachedAgentBalances(env, walletAddress));
 });
 
 app.get("/spend", async (c) => {
@@ -696,6 +739,145 @@ app.get("/events", async (c) => {
       };
 
       c.req.raw.signal.addEventListener("abort", abortHandler, { once: true });
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+});
+
+// ─── Non-custodial Wallet Session Routes ──────────────────────────────
+
+app.post("/wallet/session", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const schema = z.object({ address: z.string().min(1) });
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  walletApprovals.connect(parsed.data.address);
+  console.log(`[agent:wallet] Pera Wallet connected: ${parsed.data.address}`);
+  void refreshAgentBalances(env, parsed.data.address).catch(() => {});
+  return c.json({ address: parsed.data.address });
+});
+
+app.delete("/wallet/session", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  walletApprovals.disconnect();
+  console.log("[agent:wallet] Pera Wallet disconnected");
+  return c.json({ ok: true });
+});
+
+app.get("/wallet/session", (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  return c.json(walletApprovals.status());
+});
+
+app.get("/wallet/signature-requests", (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  return c.json({ requests: walletApprovals.pendingRequests() });
+});
+
+app.post("/wallet/signature-requests/:id/approve", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const id = c.req.param("id");
+  const schema = z.object({
+    signedTransactionsBase64: z.array(z.string()),
+  });
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  try {
+    await walletApprovals.approve(id, parsed.data.signedTransactionsBase64);
+    return c.json({ ok: true });
+  } catch (err) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+  }
+});
+
+app.post("/wallet/signature-requests/:id/reject", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const id = c.req.param("id");
+  const schema = z.object({
+    reason: z.string().optional(),
+  });
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+
+  walletApprovals.reject(id, parsed.success ? parsed.data.reason : undefined);
+  return c.json({ ok: true });
+});
+
+// ─── Agent Chat SSE Streaming ──────────────────────────────────────────
+
+app.post("/actions/agent-chat", async (c) => {
+  console.log("[agent] POST /actions/agent-chat");
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const schema = z.object({
+    taskDescription: z.string().min(1).max(4000),
+    currency: z.enum(["usdc", "eurd"]).default("usdc"),
+  });
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  if (!env.GROQ_API_KEY) {
+    return c.json({ error: "GROQ_API_KEY not configured on the server" }, 503);
+  }
+
+  const { runAgentBrain } = await import("./lib/agent-brain.js");
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      function send(eventType: string, data: unknown) {
+        const line = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+        controller.enqueue(encoder.encode(line));
+      }
+
+      send("started", { message: "Agent brain started", taskDescription: parsed.data.taskDescription });
+
+      try {
+        const result = await runAgentBrain(
+          { taskDescription: parsed.data.taskDescription },
+          env,
+          db,
+        );
+        for (const step of result.steps) {
+          send("step_completed", step);
+        }
+        send("done", {
+          finalAnswer: result.finalAnswer,
+          totalCostUsd: result.totalCostUsd,
+          allTxids: result.allTxids,
+          stepCount: result.steps.length,
+        });
+      } catch (err) {
+        console.error("[agent-chat] Error:", err);
+        send("error", { message: err instanceof Error ? err.message : String(err) });
+      } finally {
+        controller.close();
+      }
     },
   });
 

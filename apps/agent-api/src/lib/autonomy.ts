@@ -134,12 +134,12 @@ class LlmBasedStrategy implements DecisionStrategy {
     letter: InboundLetterInput,
     env: AgentEnv,
   ): Promise<AutonomyDecision> {
-    const anthropicApiKey = env.ANTHROPIC_API_KEY;
+    const anthropicApiKey = env.GROQ_API_KEY;
 
     // If no API key, fall back to rules-based logic
     if (!anthropicApiKey) {
       console.log(
-        `[autonomy] No ANTHROPIC_API_KEY configured, using rules-based strategy`,
+        `[autonomy] No GROQ_API_KEY configured, using rules-based strategy`,
       );
       return this.rulesStrategy.evaluate(letter, env);
     }

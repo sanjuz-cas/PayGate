@@ -6,12 +6,14 @@
   "scripts": {
     "build": "pnpm -r build",
     "check": "pnpm -r check",
-    "dev:service": "dotenv -e .env.service -- pnpm --filter @juicebag-mail/service-api dev",
-    "dev:agent": "dotenv -e .env.agent -- pnpm --filter @juicebag-mail/agent-api dev",
-    "dev:ui": "dotenv -e .env.agent -e .env.service -- pnpm --filter @juicebag-mail/demo-ui dev",
-    "dev:mcp": "dotenv -e .env.agent -- pnpm --filter @juicebag-mail/juicebag-mcp dev"
+    "dev:service": "node scripts/run-with-env.mjs .env.service -- pnpm --filter @juicebag-mail/service-api dev",
+    "dev:verify": "node scripts/run-with-env.mjs .env.service -- pnpm --filter @juicebag-mail/address-verify-api dev",
+    "dev:agent": "node scripts/run-with-env.mjs .env.agent -- pnpm --filter @juicebag-mail/agent-api dev",
+    "dev:ui": "node scripts/run-with-env.mjs .env.agent .env.service -- pnpm --filter @juicebag-mail/demo-ui dev",
+    "dev:mcp": "node scripts/run-with-env.mjs .env.agent -- pnpm --filter @juicebag-mail/juicebag-mcp dev"
   },
   "devDependencies": {
+    "@noble/curves": "2.2.0",
     "dotenv-cli": "^11.0.0"
   }
 }

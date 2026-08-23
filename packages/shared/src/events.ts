@@ -76,4 +76,20 @@ export type AgentEvent =
       createdAt: string;
       message: string;
       txid?: string;
+    }
+  | {
+      id: string;
+      type: "wallet.signature_required";
+      createdAt: string;
+      message: string;
+      requestId?: string;
+      walletAddress?: string;
+    }
+  | {
+      id: string;
+      type: "wallet.signature_approved";
+      createdAt: string;
+      message: string;
+      requestId?: string;
+      walletAddress?: string;
     };

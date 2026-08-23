@@ -20,13 +20,19 @@ function defaultBalances(address: string): AgentBalances {
   };
 }
 
-export function getCachedAgentBalances(env: AgentEnv): AgentBalances {
-  const address = mnemonicToAddress(env.mnemonic);
+export function getCachedAgentBalances(env: AgentEnv, addressOverride?: string | null): AgentBalances {
+  const address = addressOverride || (env.mnemonic ? mnemonicToAddress(env.mnemonic) : null);
+  if (!address) {
+    return defaultBalances("Connect Pera Wallet");
+  }
   return balanceCache.get(address) ?? defaultBalances(address);
 }
 
-export function refreshAgentBalances(env: AgentEnv) {
-  const address = mnemonicToAddress(env.mnemonic);
+export function refreshAgentBalances(env: AgentEnv, addressOverride?: string | null) {
+  const address = addressOverride || (env.mnemonic ? mnemonicToAddress(env.mnemonic) : null);
+  if (!address) {
+    return Promise.resolve(defaultBalances("Connect Pera Wallet"));
+  }
   const existing = inFlightRefreshes.get(address);
   if (existing) {
     return existing;

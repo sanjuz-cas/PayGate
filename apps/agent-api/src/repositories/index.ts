@@ -50,7 +50,7 @@ export class InboundLetterRepository {
 
   async create(letterData: typeof inboundLetters.$inferInsert) {
     await this.db.insert(inboundLetters).values(letterData);
-    return this.findById(letterData.id);
+    return this.findById(letterData.id!);
   }
 
   async updateStatus(letterId: string, status: string) {
@@ -106,7 +106,7 @@ export class OutboundLetterRepository {
 
   async create(letterData: typeof outboundLetters.$inferInsert) {
     await this.db.insert(outboundLetters).values(letterData);
-    return this.findById(letterData.id);
+    return this.findById(letterData.id!);
   }
 
   async updateStatus(letterId: string, status: string) {

@@ -20,11 +20,16 @@ out/
 *.env
 !.env.example
 
-# Local SQLite databases & runtime data
+# Local SQLite databases, runtime storage & keys
 .data/
+**/.data/
+storage/
+**/storage/
 *.db
 *.db-shm
 *.db-wal
+scripts/accounts.json
+!scripts/accounts.json.example
 
 # Logs & Debugging
 *.log

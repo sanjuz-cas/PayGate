@@ -43,7 +43,11 @@ const envSchema = z.object({
   AUTONOMOUS_ALLOWLIST_SENDERS: z
     .string()
     .default(DEFAULT_ALLOWLIST_SENDERS.join(",")),
+  ALLOW_DEV_MNEMONIC_SIGNER: z
+    .preprocess((val) => (val === "false" || val === false ? false : true), z.boolean())
+    .default(true),
   ANTHROPIC_API_KEY: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
 });
 
 export type AgentEnv = z.infer<typeof envSchema> & {
