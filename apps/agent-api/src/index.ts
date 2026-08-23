@@ -45,8 +45,8 @@ import {
   getRecentAutonomyDecisions,
   recordAutonomyDecision,
 } from "./lib/autonomy.js";
-import { runAgentBrain, formatStepAsSSEEvent, type AgentBrainRequest } from "./lib/agent-brain.js";
-import { createServiceRegistryClient } from "./lib/service-registry.js";
+import { runAgentBrain, type AgentBrainRequest } from "./lib/agent-brain.js";
+import { createServiceRegistryClient, type ServiceRegistryEntry } from "./lib/service-registry.js";
 import { streamSSE } from "hono/streaming";
 
 const env = loadAgentEnv(process.env);
@@ -412,9 +412,10 @@ Content: ${data.content}`;
 
       // Stream each step as it completes
       for (const step of response.steps) {
-        await stream.writeSSE(
-          formatStepAsSSEEvent(step, "step_completed"),
-        );
+        await stream.writeSSE({
+          event: "step_completed",
+          data: JSON.stringify(step),
+        });
       }
 
       // Final summary
@@ -576,8 +577,17 @@ app.post("/actions/send-letter-with-verification", async (c) => {
       const letterResult = await juicebag.sendLetter(
         db,
         {
-          recipient: { name: data.recipientName, street1: "", postalCode: "", city: "", country: "US" },
-          subject: "Letter", bodyMarkdown: data.content,
+          recipient: { 
+            name: data.recipientName, 
+            street1: data.street || "", 
+            street2: "",
+            postalCode: data.postalCode || "", 
+            city: data.city || "", 
+            country: data.country || "US" 
+          },
+          subject: "Letter", 
+          bodyMarkdown: data.content,
+          currency: "usdc",
         },
         "usdc",
       );
@@ -590,7 +600,7 @@ app.post("/actions/send-letter-with-verification", async (c) => {
           type: "success",
           message: "Letter sent successfully",
           verificationTxId: verificationResult.payment?.transaction,
-          letterTxId,
+          letterTxid,
           result: letterResult.data,
         }),
       });

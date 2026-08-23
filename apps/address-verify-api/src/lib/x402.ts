@@ -100,7 +100,7 @@ class SimpleFacilitatorClient extends HTTPFacilitatorClient {
       typeof payload.paymentIndex === "number" ? payload.paymentIndex : 0;
 
     let transaction = "";
-    if (!(\"transaction\" in payload) && typeof paymentGroup[paymentIndex] === "string") {
+    if (!("transaction" in payload) && typeof paymentGroup[paymentIndex] === "string") {
       transaction = paymentGroup[paymentIndex];
     } else if (typeof payload.transaction === "string") {
       transaction = payload.transaction;
