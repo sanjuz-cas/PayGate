@@ -4,11 +4,11 @@ import {
   ROUTE_PRICES_EURD_DISPLAY,
 } from "@juicebag-mail/shared";
 
-export type NavPage = "agent" | "send" | "ops" | "guardrails";
+export type NavPage = "hero" | "agent" | "send" | "guardrails" | "ops";
 
 interface NavigationProps {
-  activePage: NavPage;
-  onSelectPage: (page: NavPage) => void;
+  activePage: string;
+  onSelectPage: (page: any) => void;
   currency: "usdc" | "eurd";
   onCurrencyChange: (currency: "usdc" | "eurd") => void;
   eurdEnabled: boolean;
@@ -27,50 +27,51 @@ export function Navigation({
   unreadInboundCount,
   guardrailBlocked,
 }: NavigationProps) {
-  const navItems: Array<{ id: NavPage; label: string; icon: string; badge?: number | string; alert?: boolean }> = [
-    { id: "agent", label: "Agent Overview", icon: "🤖", badge: unreadInboundCount > 0 ? unreadInboundCount : undefined },
-    { id: "send", label: "Send Letter", icon: "✉️" },
-    { id: "guardrails", label: "Guardrails & Ledger", icon: "🛡️", alert: guardrailBlocked },
-    { id: "ops", label: "Postal Ops Hub", icon: "🏢" },
+  const navItems: Array<{ id: string; label: string }> = [
+    { id: "agent", label: "Overview" },
+    { id: "send", label: "Send Letter" },
+    { id: "guardrails", label: "Guardrails & Ledger" },
+    { id: "ops", label: "Postal Ops Hub" },
   ];
 
   return (
     <header className="app-nav-header">
+      {/* Left: Brand Logo */}
       <div className="nav-brand-wrap">
-        <div className="nav-brand-logo" onClick={() => onSelectPage("agent")} role="button" tabIndex={0}>
+        <div
+          className="nav-brand-logo"
+          onClick={() => onSelectPage("hero")}
+          role="button"
+          tabIndex={0}
+          title="Return to Hero Page"
+        >
           <div className="brand-symbol">PG</div>
           <div>
             <div className="brand-title">PayGate</div>
-            <div className="brand-subtitle">Autonomous Physical Mail & x402</div>
+            <div className="brand-subtitle">Autonomous Mail &amp; x402</div>
           </div>
-        </div>
-
-        {/* Network & Protocol Status Pill */}
-        <div className="protocol-badge">
-          <span className="protocol-dot">●</span>
-          <span>Algorand TestNet • x402</span>
         </div>
       </div>
 
-      {/* Center Navigation Tabs */}
-      <nav className="nav-tabs" role="tablist" aria-label="Main Navigation">
+      {/* Center: Underlined Navigation Tabs with Green Active Indicator */}
+      <nav className="nav-tabs-clean" role="tablist" aria-label="Main Navigation">
         {navItems.map((item) => {
-          const isActive = activePage === item.id;
+          const isActive = activePage === item.id || (activePage === "hero" && item.id === "agent");
           return (
             <button
               key={item.id}
               role="tab"
               aria-selected={isActive}
-              className={`nav-tab ${isActive ? "is-active" : ""} ${item.alert ? "is-alert" : ""}`}
+              className={`nav-tab-clean ${isActive ? "is-active" : ""}`}
               onClick={() => onSelectPage(item.id)}
               type="button"
             >
-              <span className="nav-tab-icon">{item.icon}</span>
-              <span className="nav-tab-label">{item.label}</span>
-              {item.badge !== undefined && (
-                <span className="nav-tab-badge">{item.badge}</span>
+              <span>{item.label}</span>
+              {isActive && <div className="nav-active-pill-bar" />}
+              {item.id === "agent" && unreadInboundCount > 0 && (
+                <span className="nav-tab-badge">{unreadInboundCount}</span>
               )}
-              {item.alert && (
+              {item.id === "guardrails" && guardrailBlocked && (
                 <span className="nav-tab-alert-dot" title="Guardrail Blocked">!</span>
               )}
             </button>
@@ -78,9 +79,9 @@ export function Navigation({
         })}
       </nav>
 
-      {/* Right Utility Bar */}
+      {/* Right: Currency Toggle, Fee Rates, and Agent Chat Button */}
       <div className="nav-utilities">
-        {/* Currency Switcher */}
+        {/* Segmented Currency Selector */}
         <div className="currency-selector" role="group" aria-label="Payment Token">
           <button
             type="button"
@@ -100,28 +101,40 @@ export function Navigation({
           </button>
         </div>
 
-        {/* Price Strip */}
+        {/* Fee Indicator Chips */}
         <div className="nav-pricing-pills">
-          <span className="nav-price-chip" title="Mailbox Registration fee">
-            Reg: <strong>{currency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.registration : ROUTE_PRICES.registration}</strong>
-          </span>
-          <span className="nav-price-chip" title="Send letter fee">
-            Send: <strong>{currency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.outboundLetter : ROUTE_PRICES.outboundLetter}</strong>
-          </span>
-          <span className="nav-price-chip" title="Unlock letter fee">
-            Unlock: <strong>{currency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.inboundUnlock : ROUTE_PRICES.inboundUnlock}</strong>
-          </span>
+          <div className="nav-fee-col">
+            <span className="fee-label">Reg. Fee</span>
+            <span className="fee-val">
+              {currency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.registration : ROUTE_PRICES.registration}
+              <span className="info-icon" title="Mailbox Registration fee">ⓘ</span>
+            </span>
+          </div>
+          <div className="nav-fee-col">
+            <span className="fee-label">Send Fee</span>
+            <span className="fee-val">
+              {currency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.outboundLetter : ROUTE_PRICES.outboundLetter}
+              <span className="info-icon" title="Send letter fee">ⓘ</span>
+            </span>
+          </div>
+          <div className="nav-fee-col">
+            <span className="fee-label">Unlock Fee</span>
+            <span className="fee-val">
+              {currency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.inboundUnlock : ROUTE_PRICES.inboundUnlock}
+              <span className="info-icon" title="Unlock letter fee">ⓘ</span>
+            </span>
+          </div>
         </div>
 
-        {/* AI Agent Chat Launcher */}
+        {/* Agent Chat Profile Pill Button */}
         <button
           type="button"
           onClick={onOpenChat}
-          className="nav-chat-btn"
+          className="nav-chat-pill-btn"
           aria-label="Open AI Agent Chat"
         >
-          <span className="nav-chat-icon">💬</span>
-          <span>Agent Chat</span>
+          <span className="chat-btn-icon">💬</span>
+          <span className="chat-btn-text">Agent Chat</span>
         </button>
       </div>
     </header>

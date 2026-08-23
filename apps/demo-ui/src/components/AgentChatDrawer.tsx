@@ -18,15 +18,19 @@ interface Message {
 interface AgentChatDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpen?: () => void;
   agentState?: AgentState | null;
   onStateRefresh: () => void;
+  hideFloatingLauncher?: boolean;
 }
 
 export function AgentChatDrawer({
   isOpen,
   onClose,
+  onOpen,
   agentState,
   onStateRefresh,
+  hideFloatingLauncher,
 }: AgentChatDrawerProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -78,11 +82,6 @@ export function AgentChatDrawer({
         addMessage({
           sender: "agent",
           text: `Spending Guardrail Status:\n• 24h Spend: $${g.currentSpendUsdc.toFixed(2)} USDC\n• Daily Cap: $${g.dailyCapUsdc.toFixed(2)} USDC\n• Remaining Budget: $${g.remainingUsdc.toFixed(2)} USDC\n• Status: ${g.blocked ? "🛑 BUDGET BLOCKED" : "✅ ACTIVE & PROTECTED"}`,
-          toolCall: {
-            name: "get_spend_status",
-            input: {},
-            output: g,
-          },
         });
       } else if (lower.includes("lower cap") || lower.includes("0.05") || lower.includes("trigger block")) {
         const res = await api.setDailyCap(0.05);
@@ -178,11 +177,11 @@ export function AgentChatDrawer({
   return (
     <>
       {/* Floating Launcher Button */}
-      {!isOpen && (
+      {!isOpen && !hideFloatingLauncher && (
         <button
           type="button"
           className="chat-floating-launcher"
-          onClick={onClose}
+          onClick={onOpen ?? onClose}
           aria-label="Open AI Mail Agent Chat"
         >
           <span className="launcher-icon">🤖</span>

@@ -1,4 +1,3 @@
-```
 # Dependencies
 node_modules/
 .pnpm-store/
@@ -15,27 +14,33 @@ out/
 *.tsbuildinfo
 .eslintcache
 
-# ------------------------------------------------------------------------------
-# 5. Logs & Debugging
-# ------------------------------------------------------------------------------
+# Environment variables
+.env
+.env.*
+*.env
+!.env.example
+
+# Local SQLite databases & runtime data
+.data/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs & Debugging
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ------------------------------------------------------------------------------
-# 6. Python & Virtual Environments (if applicable)
-# ------------------------------------------------------------------------------
+# Python & Virtual Environments
 .venv/
 venv/
 env/
 __pycache__/
 *.py[cod]
 
-# ------------------------------------------------------------------------------
-# 7. Operating System & IDE Files
-# ------------------------------------------------------------------------------
+# Operating System & IDE Files
 .DS_Store
 .DS_Store?
 ._*

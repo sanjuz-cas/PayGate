@@ -1,17 +1,13 @@
-import React, { useState, type ReactNode } from "react";
+import React, { useState } from "react";
 import type {
   AgentRegistrationInput,
   AgentState,
   AgentBalances,
 } from "@juicebag-mail/shared";
-import {
-  ROUTE_PRICES,
-  ROUTE_PRICES_EURD_DISPLAY,
-} from "@juicebag-mail/shared";
 import { AutonomyBadge } from "../components/AutonomyBadge";
 import { ReasoningCallout } from "../components/ReasoningCallout";
 import { BudgetBlockedAlert } from "../components/BudgetBlockedAlert";
-import { SpendGauge } from "../components/SpendGauge";
+import bannerImageUrl from "../../demo_assets/dashboard_banner.png";
 
 interface AgentPageProps {
   agentState?: AgentState | null;
@@ -30,6 +26,7 @@ interface AgentPageProps {
   onDismissBudgetAlert: () => void;
   currentAgentEvent: any;
   onNavigateToSend: () => void;
+  onNavigateToOps?: () => void;
 }
 
 export function AgentPage({
@@ -49,11 +46,27 @@ export function AgentPage({
   onDismissBudgetAlert,
   currentAgentEvent,
   onNavigateToSend,
+  onNavigateToOps,
 }: AgentPageProps) {
   const [inboundFilter, setInboundFilter] = useState<"all" | "unlocked" | "pending" | "ignored">("all");
+  const [customCapInput, setCustomCapInput] = useState("");
+  const [isEditingCustom, setIsEditingCustom] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
 
   const inboundLetters = agentState?.inboundLetters ?? [];
   const isRegistered = !!agentState?.registration;
+  const agentName = agentState?.registration?.agentName ?? registrationForm.agentName ?? "Acme Filing Agent";
+  const guardrail = agentState?.guardrail;
+
+  const currentSpend = guardrail?.currentSpendUsdc ?? 0;
+  const dailyCap = guardrail?.dailyCapUsdc ?? 5.0;
+  const remaining = Math.max(0, dailyCap - currentSpend);
+  const isBlocked = guardrail?.blocked ?? false;
+  const percentUsed = dailyCap > 0 ? Math.min(100, Math.round((currentSpend / dailyCap) * 100)) : 0;
+
+  const unlockedCount = inboundLetters.filter((l) => l.agentStatus === "received").length;
+  const pendingCount = inboundLetters.filter((l) => l.agentStatus === "pending").length;
+  const ignoredCount = inboundLetters.filter((l) => l.agentStatus === "ignored").length;
 
   const filteredInbound = inboundLetters.filter((letter) => {
     if (inboundFilter === "unlocked") return letter.agentStatus === "received";
@@ -62,24 +75,45 @@ export function AgentPage({
     return true;
   });
 
+  const handleCopyAddress = () => {
+    if (agentBalances?.address) {
+      void navigator.clipboard.writeText(agentBalances.address);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    }
+  };
+
+  const handleCustomCapSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(customCapInput);
+    if (!isNaN(val) && val >= 0.01) {
+      void onUpdateCap(val);
+      setIsEditingCustom(false);
+    }
+  };
+
   return (
-    <div className="page-container">
-      {/* Page Header */}
-      <div className="page-header-row">
-        <div>
-          <h1 className="page-title">Agent Console & Mailbox</h1>
-          <p className="page-description">
+    <div className="dashboard-content-area">
+      {/* 1. Top Welcome Banner with Landscape Artwork Background & Rich Typography */}
+      <div className="dash-welcome-banner">
+        <div className="welcome-banner-bg" style={{ backgroundImage: `url(${bannerImageUrl})` }} />
+        <div className="welcome-banner-overlay" />
+        <div className="welcome-banner-content">
+          <div className="welcome-orb" />
+          <h1 className="welcome-heading">
+            Welcome back,
+            <br />
+            <span className="welcome-name-green">{agentName}.</span>
+          </h1>
+          <p className="welcome-subtext">
             Monitor autonomous mail intake, wallet balances, and pre-payment budget limits on Algorand.
           </p>
-        </div>
-        <div className="page-actions-group">
           <button
             type="button"
-            className="btn btn--primary"
+            className="welcome-compose-btn"
             onClick={onNavigateToSend}
-            disabled={!isRegistered}
           >
-            <span>✉️</span>
+            <span className="btn-icon">✍</span>
             <span>Compose Outbound Letter</span>
           </button>
         </div>
@@ -97,335 +131,408 @@ export function AgentPage({
         />
       )}
 
-      {/* Top Metrics & Guardrail Grid */}
-      <div className="dashboard-top-grid">
-        {/* Spending Guardrail Card */}
-        <div className="grid-span-2">
-          <SpendGauge
-            guardrail={agentState?.guardrail}
-            onUpdateCap={onUpdateCap}
-            isUpdatingCap={isUpdatingCap}
-          />
+      {/* 2. Top Two-Column Grid: 24h Spending Guardrail & Agent Wallet Balances */}
+      <div className="dash-two-col-grid">
+        {/* Left Card: 24h Spending Guardrail */}
+        <div className="dash-card guardrail-card">
+          <div className="dash-card-header">
+            <div className="card-header-left">
+              <div className="card-header-icon-box green-icon-box">🛡️</div>
+              <div>
+                <h2 className="card-title">24h Spending Guardrail</h2>
+                <p className="card-subtitle">Pre-payment Autonomous Budget Safety</p>
+              </div>
+            </div>
+            <div className={`status-pill ${isBlocked ? "status-pill--blocked" : "status-pill--active"}`}>
+              <span className="pill-dot">●</span>
+              <span>{isBlocked ? "BUDGET BLOCKED" : "ACTIVE & PROTECTED"}</span>
+            </div>
+          </div>
+
+          {/* Metric Triplets */}
+          <div className="guardrail-metrics-row">
+            <div className="metric-cell">
+              <span className="metric-label">24H SPENT</span>
+              <div className="metric-val-wrap">
+                <span className="metric-num">${currentSpend.toFixed(2)}</span>
+                <span className="metric-unit">USDC</span>
+              </div>
+            </div>
+            <div className="metric-cell">
+              <span className="metric-label">DAILY CAP</span>
+              <div className="metric-val-wrap">
+                <span className="metric-num">${dailyCap.toFixed(2)}</span>
+                <span className="metric-unit">USDC</span>
+              </div>
+            </div>
+            <div className="metric-cell">
+              <span className="metric-label">REMAINING</span>
+              <div className="metric-val-wrap">
+                <span className="metric-num remaining-val">${remaining.toFixed(2)}</span>
+                <span className="metric-unit">USDC</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar with Limit Label */}
+          <div className="guardrail-progress-section">
+            <div className="progress-label-row">
+              <span className="progress-consumed-text">{percentUsed}% of daily limit consumed</span>
+              <span className="progress-window-text">Rolling 24-hour window</span>
+            </div>
+            <div className="dash-progress-track">
+              <div
+                className={`dash-progress-bar ${isBlocked ? "is-blocked" : percentUsed > 75 ? "is-warning" : "is-healthy"}`}
+                style={{ width: `${percentUsed}%` }}
+              />
+            </div>
+            <div className="progress-scale-labels">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          {/* Quick-Cap Presets Row */}
+          <div className="quick-cap-row">
+            <span className="quick-cap-label">Demo Quick-Cap:</span>
+            <div className="quick-cap-buttons">
+              <button
+                type="button"
+                className="cap-btn cap-btn--red"
+                onClick={() => void onUpdateCap(0.05)}
+                disabled={isUpdatingCap}
+                title="Drop cap to $0.05 to trigger block rejection"
+              >
+                Trigger Block ($0.05)
+              </button>
+              <button
+                type="button"
+                className={`cap-btn ${dailyCap === 1.0 ? "is-selected" : ""}`}
+                onClick={() => void onUpdateCap(1.0)}
+                disabled={isUpdatingCap}
+              >
+                $1.00
+              </button>
+              <button
+                type="button"
+                className={`cap-btn ${dailyCap === 5.0 ? "is-selected-dark" : ""}`}
+                onClick={() => void onUpdateCap(5.0)}
+                disabled={isUpdatingCap}
+              >
+                $5.00 (Default)
+              </button>
+              {isEditingCustom ? (
+                <form onSubmit={handleCustomCapSubmit} className="custom-cap-form">
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.01"
+                    max="100"
+                    placeholder="USD"
+                    value={customCapInput}
+                    onChange={(e) => setCustomCapInput(e.target.value)}
+                    className="custom-cap-input"
+                    autoFocus
+                  />
+                  <button type="submit" className="custom-cap-submit">Set</button>
+                  <button type="button" onClick={() => setIsEditingCustom(false)} className="custom-cap-cancel">✕</button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className="cap-btn"
+                  onClick={() => setIsEditingCustom(true)}
+                  disabled={isUpdatingCap}
+                >
+                  Custom...
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Live Wallet Balances */}
-        <div className="card balance-card">
-          <div className="card-header">
-            <h3 className="card-title">Agent Wallet Balances</h3>
-            <span className="card-meta">TestNet / MainNet</span>
+        {/* Right Card: Agent Wallet Balances */}
+        <div className="dash-card balances-card">
+          <div className="dash-card-header">
+            <h2 className="card-title">Agent Wallet Balances</h2>
+            <span className="card-right-label">TestNet / MainNet</span>
           </div>
-          <div className="balance-grid">
-            <div className="balance-item">
-              <span className="balance-label">USDC (TestNet)</span>
-              <div className="balance-val">
-                <strong>${agentBalances.usdc.toFixed(3)}</strong>
-                <small>USDC</small>
+
+          {/* 3 Token Balance Cards in a Row */}
+          <div className="tokens-row">
+            {/* USDC Card */}
+            <div className="token-cell">
+              <div className="token-cell-header">
+                <div className="token-icon usdc-icon">$</div>
+                <div className="token-name-wrap">
+                  <span className="token-symbol">USDC</span>
+                  <span className="token-network">(TESTNET)</span>
+                </div>
               </div>
+              <div className="token-amount">
+                ${agentBalances?.usdc?.toFixed(3) ?? "0.000"}
+              </div>
+              <div className="token-currency-label">USDC</div>
             </div>
-            <div className="balance-item">
-              <span className="balance-label">ALGO (Gas)</span>
-              <div className="balance-val">
-                <strong>{agentBalances.algo.toFixed(3)}</strong>
-                <small>ALGO</small>
+
+            {/* ALGO Card */}
+            <div className="token-cell">
+              <div className="token-cell-header">
+                <div className="token-icon algo-icon">▲</div>
+                <div className="token-name-wrap">
+                  <span className="token-symbol">ALGO</span>
+                  <span className="token-network">(GAS)</span>
+                </div>
               </div>
+              <div className="token-amount">
+                {agentBalances?.algo?.toFixed(3) ?? "0.000"}
+              </div>
+              <div className="token-currency-label">ALGO</div>
             </div>
-            <div className="balance-item">
-              <span className="balance-label">EURD (Quantoz)</span>
-              <div className="balance-val">
-                <strong>€{agentBalances.eurd.toFixed(2)}</strong>
-                <small>EURD</small>
+
+            {/* EURD Card */}
+            <div className="token-cell">
+              <div className="token-cell-header">
+                <div className="token-icon eurd-icon">€</div>
+                <div className="token-name-wrap">
+                  <span className="token-symbol">EURD</span>
+                  <span className="token-network">(QUANTOZ)</span>
+                </div>
               </div>
+              <div className="token-amount">
+                €{agentBalances?.eurd?.toFixed(2) ?? "0.00"}
+              </div>
+              <div className="token-currency-label">EURD</div>
             </div>
           </div>
-          <div className="wallet-address-strip">
-            <span className="wallet-address-label">Wallet Address:</span>
-            <span className="wallet-address-val">
-              {agentBalances.address ? `${agentBalances.address.slice(0, 10)}...${agentBalances.address.slice(-6)}` : "Loading..."}
-            </span>
+
+          {/* Wallet Address Row with Copy Tool */}
+          <div className="wallet-address-bar">
+            <span className="address-bar-title">Wallet Address</span>
+            <div className="address-bar-content" onClick={handleCopyAddress} role="button" tabIndex={0}>
+              <span className="address-hash-text">
+                {agentBalances?.address
+                  ? `${agentBalances.address.slice(0, 10)}••••••••••••••••••••••••••••••••${agentBalances.address.slice(-6)}`
+                  : "••••••••••••••••••••••••••••••••"}
+              </span>
+              <button
+                type="button"
+                className="copy-address-btn"
+                title={copiedAddress ? "Copied!" : "Copy Wallet Address"}
+              >
+                {copiedAddress ? "✓" : "⧉"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Identity & Inbound Section */}
-      <div className="dashboard-main-grid">
-        {/* Left Column: Mailbox Identity */}
-        <div className="col-identity">
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">Physical Mailbox Identity</h3>
-              {isRegistered && (
-                <span className="badge badge--success">Registered</span>
-              )}
-            </div>
-
-            {isRegistered ? (
-              <div className="identity-details">
-                <div className="mailbox-id-banner">
-                  <span className="label">Mailbox ID</span>
-                  <strong className="val">{agentState.registration?.mailboxId}</strong>
-                </div>
-                <div className="address-box">
-                  <div className="address-name">{agentState.registration?.agentName}</div>
-                  <div className="address-line">{agentState.registration?.legalIdentity.name}</div>
-                  <div className="address-line">{agentState.registration?.legalIdentity.street1}</div>
-                  <div className="address-line">
-                    {agentState.registration?.legalIdentity.postalCode}{" "}
-                    {agentState.registration?.legalIdentity.city}
-                  </div>
-                  <div className="address-line country-pill">
-                    {agentState.registration?.legalIdentity.country}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <form
-                className="stack-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void onRegister();
-                }}
-              >
-                <p className="form-helper-text">
-                  Register this agent with the physical mail hub via an on-chain x402 payment.
+      {/* 3. Middle Two-Column Grid: Physical Mailbox Identity & Inbound Physical Mailbox */}
+      <div className="dash-two-col-grid middle-grid">
+        {/* Left Card: Physical Mailbox Identity */}
+        <div className="dash-card identity-card">
+          <div className="dash-card-header">
+            <div className="card-header-left">
+              <div className="card-header-icon-box green-icon-box">📇</div>
+              <div>
+                <h2 className="card-title">Physical Mailbox Identity</h2>
+                <p className="card-subtitle">
+                  {isRegistered
+                    ? "Agent registered and active with physical mailbox hub."
+                    : "Register this agent with the physical mail hub via an on-chain x402 payment."}
                 </p>
-                <div className="form-field">
-                  <label>Agent Name</label>
-                  <input
-                    type="text"
-                    value={registrationForm.agentName}
-                    onChange={(e) =>
-                      onRegistrationChange((prev) => ({ ...prev, agentName: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Legal Entity Name</label>
-                  <input
-                    type="text"
-                    value={registrationForm.legalIdentity.name}
-                    onChange={(e) =>
-                      onRegistrationChange((prev) => ({
-                        ...prev,
-                        legalIdentity: { ...prev.legalIdentity, name: e.target.value },
-                      }))
-                    }
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Street Address</label>
-                  <input
-                    type="text"
-                    value={registrationForm.legalIdentity.street1}
-                    onChange={(e) =>
-                      onRegistrationChange((prev) => ({
-                        ...prev,
-                        legalIdentity: { ...prev.legalIdentity, street1: e.target.value },
-                      }))
-                    }
-                  />
-                </div>
-                <div className="form-row-split">
-                  <div className="form-field">
-                    <label>Postal Code</label>
-                    <input
-                      type="text"
-                      value={registrationForm.legalIdentity.postalCode}
-                      onChange={(e) =>
-                        onRegistrationChange((prev) => ({
-                          ...prev,
-                          legalIdentity: { ...prev.legalIdentity, postalCode: e.target.value },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>City</label>
-                    <input
-                      type="text"
-                      value={registrationForm.legalIdentity.city}
-                      onChange={(e) =>
-                        onRegistrationChange((prev) => ({
-                          ...prev,
-                          legalIdentity: { ...prev.legalIdentity, city: e.target.value },
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="btn btn--primary btn--full"
-                  disabled={busyActions.has("register")}
-                >
-                  {busyActions.has("register")
-                    ? "Registering On-Chain..."
-                    : `Register Mailbox (${selectedCurrency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.registration : ROUTE_PRICES.registration})`}
-                </button>
-              </form>
-            )}
+              </div>
+            </div>
           </div>
 
-          {/* Latest Agent Event */}
-          <div className="card event-stream-card">
-            <div className="card-header">
-              <h3 className="card-title">Live x402 Agent Event</h3>
-              <span className="live-indicator">● LIVE SSE</span>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onRegister();
+            }}
+            className="identity-form-body"
+          >
+            <div className="form-input-group">
+              <label className="form-input-label">Agent Name</label>
+              <input
+                type="text"
+                className="dash-text-input"
+                placeholder="e.g. Acme Filing Agent"
+                value={registrationForm.agentName}
+                onChange={(e) =>
+                  onRegistrationChange((prev) => ({
+                    ...prev,
+                    agentName: e.target.value,
+                  }))
+                }
+                disabled={isRegistered}
+              />
             </div>
-            <div className="event-stream-body">
-              <p className="event-msg">{currentAgentEvent?.message ?? "Waiting for incoming mail or payments..."}</p>
-              {currentAgentEvent?.txid && (
-                <div className="event-txid-row">
-                  <span>Tx:</span>
-                  <a
-                    href={`https://testnet.explorer.perawallet.app/tx/${currentAgentEvent.txid}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="tx-link"
-                  >
-                    {currentAgentEvent.txid.slice(0, 14)}... ↗
-                  </a>
-                </div>
-              )}
+
+            <div className="form-input-group">
+              <label className="form-input-label">Legal Entity Name</label>
+              <input
+                type="text"
+                className="dash-text-input"
+                placeholder="e.g. Acme Corporation LLC"
+                value={registrationForm.legalIdentity.name}
+                onChange={(e) =>
+                  onRegistrationChange((prev) => ({
+                    ...prev,
+                    legalIdentity: {
+                      ...prev.legalIdentity,
+                      name: e.target.value,
+                    },
+                  }))
+                }
+                disabled={isRegistered}
+              />
             </div>
-          </div>
+
+            <button
+              type="submit"
+              className="dash-full-btn"
+              disabled={isRegistered || busyActions.has("register")}
+            >
+              <span className="btn-icon">🔏</span>
+              <span>{isRegistered ? "Identity Registered & Locked" : "Save Identity"}</span>
+            </button>
+          </form>
         </div>
 
-        {/* Right Column: Inbound Mail Inbox */}
-        <div className="col-inbox">
-          <div className="card">
-            <div className="card-header-with-actions">
+        {/* Right Card: Inbound Physical Mailbox */}
+        <div className="dash-card inbound-card">
+          <div className="dash-card-header">
+            <div className="card-header-left">
+              <div className="card-header-icon-box green-icon-box">📬</div>
               <div>
-                <h3 className="card-title">Inbound Physical Mailbox</h3>
-                <span className="card-subtitle">
-                  {inboundLetters.length} total letters received & triage-evaluated
-                </span>
-              </div>
-
-              {/* Filter Tabs */}
-              <div className="filter-tab-bar">
-                <button
-                  type="button"
-                  className={`filter-tab ${inboundFilter === "all" ? "is-active" : ""}`}
-                  onClick={() => setInboundFilter("all")}
-                >
-                  All ({inboundLetters.length})
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${inboundFilter === "unlocked" ? "is-active" : ""}`}
-                  onClick={() => setInboundFilter("unlocked")}
-                >
-                  🛡️ Auto-Unlocked ({inboundLetters.filter((l) => l.agentStatus === "received").length})
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${inboundFilter === "pending" ? "is-active" : ""}`}
-                  onClick={() => setInboundFilter("pending")}
-                >
-                  ⏳ Pending ({inboundLetters.filter((l) => l.agentStatus === "pending").length})
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${inboundFilter === "ignored" ? "is-active" : ""}`}
-                  onClick={() => setInboundFilter("ignored")}
-                >
-                  🚫 Ignored ({inboundLetters.filter((l) => l.agentStatus === "ignored").length})
-                </button>
+                <h2 className="card-title">Inbound Physical Mailbox</h2>
+                <p className="card-subtitle">{inboundLetters.length} total letters received &amp; triage-evaluated</p>
               </div>
             </div>
 
-            {/* Inbound Letters List */}
+            {/* Filter Pills */}
+            <div className="inbound-filter-pills" role="tablist">
+              <button
+                type="button"
+                className={`filter-pill ${inboundFilter === "all" ? "is-active" : ""}`}
+                onClick={() => setInboundFilter("all")}
+              >
+                All ({inboundLetters.length})
+              </button>
+              <button
+                type="button"
+                className={`filter-pill filter-pill--blue ${inboundFilter === "unlocked" ? "is-active" : ""}`}
+                onClick={() => setInboundFilter("unlocked")}
+              >
+                🛡️ Auto-Unlocked ({unlockedCount})
+              </button>
+              <button
+                type="button"
+                className={`filter-pill filter-pill--amber ${inboundFilter === "pending" ? "is-active" : ""}`}
+                onClick={() => setInboundFilter("pending")}
+              >
+                ⏳ Pending ({pendingCount})
+              </button>
+              <button
+                type="button"
+                className={`filter-pill filter-pill--red ${inboundFilter === "ignored" ? "is-active" : ""}`}
+                onClick={() => setInboundFilter("ignored")}
+              >
+                🚫 Ignored ({ignoredCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Inbound Letters Container */}
+          <div className="inbound-mailbox-container">
             {filteredInbound.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">📭</div>
-                <div className="empty-title">No letters matching filter</div>
-                <p className="empty-desc">
-                  Switch to &ldquo;Postal Ops Hub&rdquo; in the top navigation to ingest and scan inbound postal mail.
+              <div className="inbound-empty-state">
+                <div className="empty-mailbox-icon">📭</div>
+                <h3 className="empty-state-heading">No letters matching filter</h3>
+                <p className="empty-state-text">
+                  Switch to &ldquo;Postal Ops Hub&rdquo; in the top navigation to view and manage operations.
                 </p>
+                {onNavigateToOps && (
+                  <button
+                    type="button"
+                    className="empty-state-link-btn"
+                    onClick={onNavigateToOps}
+                  >
+                    Go to Postal Ops Hub ↗
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="letter-item-list">
+              <div className="inbound-letters-list">
                 {filteredInbound.map((letter) => {
                   const decision = agentState?.recentAutonomyDecisions?.find((d) => d.letterId === letter.id);
-                  const isUnlocked = letter.agentStatus === "received";
-                  const isPending = letter.agentStatus === "pending";
+                  const isReceived = letter.agentStatus === "received";
                   const isIgnored = letter.agentStatus === "ignored";
 
                   return (
                     <div
                       key={letter.id}
-                      className={`letter-item-row ${isUnlocked ? "is-unlocked" : isIgnored ? "is-ignored" : "is-pending"}`}
+                      className="inbound-item-card"
                       onClick={() => onSelectLetterModal(letter)}
                       role="button"
                       tabIndex={0}
                     >
-                      <div className="letter-left-info">
-                        <div className="letter-title-row">
-                          <strong className="letter-from-name">{letter.fromName}</strong>
-                          <AutonomyBadge decision={decision?.decision} confidence={decision?.confidence} compact />
-                          <span className={`status-pill status-pill--${letter.agentStatus}`}>
-                            {letter.agentStatus}
-                          </span>
+                      <div className="inbound-item-top">
+                        <div className="inbound-item-title-group">
+                          <span className="inbound-sender-name">{letter.fromName}</span>
+                          <span className="inbound-item-date">{new Date(letter.receivedAt).toLocaleDateString()}</span>
                         </div>
-                        <p className="letter-summary-text">{letter.envelopeSummary}</p>
-
-                        {/* Expandable Reasoning Note */}
                         {decision && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <ReasoningCallout reason={decision.reason} evaluatedAt={decision.evaluatedAt} />
-                          </div>
+                          <AutonomyBadge decision={decision.decision} confidence={decision.confidence} />
                         )}
-
-                        <div className="letter-meta-row">
-                          <span>Received: {new Date(letter.receivedAt).toLocaleString()}</span>
-                          {letter.unlockPaymentTxid && (
-                            <span className="proof-tag" onClick={(e) => e.stopPropagation()}>
-                              <span>⛓️</span>
-                              <a
-                                href={`https://testnet.explorer.perawallet.app/tx/${letter.unlockPaymentTxid}`}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Tx: {letter.unlockPaymentTxid.slice(0, 8)}... ↗
-                              </a>
-                            </span>
-                          )}
-                        </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="letter-right-actions" onClick={(e) => e.stopPropagation()}>
-                        {!isUnlocked && !isIgnored && (
-                          <button
-                            type="button"
-                            className="btn btn--sm btn--primary"
-                            disabled={busyActions.has(`unlock-${letter.id}`)}
-                            onClick={() => void onUnlockLetter(letter.id)}
-                          >
-                            {busyActions.has(`unlock-${letter.id}`)
-                              ? "Unlocking..."
-                              : `Unlock ($${selectedCurrency === "eurd" ? ROUTE_PRICES_EURD_DISPLAY.inboundUnlock : ROUTE_PRICES.inboundUnlock})`}
-                          </button>
-                        )}
-                        {isPending && (
-                          <button
-                            type="button"
-                            className="btn btn--sm btn--outline"
-                            disabled={busyActions.has(`ignore-${letter.id}`)}
-                            onClick={() => void onIgnoreLetter(letter.id)}
-                          >
-                            Ignore
-                          </button>
-                        )}
-                        {isUnlocked && (
-                          <button
-                            type="button"
-                            className="btn btn--sm btn--ghost"
-                            onClick={() => onSelectLetterModal(letter)}
-                          >
-                            Read Full Text ↗
-                          </button>
-                        )}
+                      <p className="inbound-item-summary">{letter.envelopeSummary}</p>
+
+                      {decision && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <ReasoningCallout reason={decision.reason} evaluatedAt={decision.evaluatedAt} />
+                        </div>
+                      )}
+
+                      <div className="inbound-item-footer" onClick={(e) => e.stopPropagation()}>
+                        <span className={`status-badge status-badge--${letter.agentStatus}`}>
+                          {letter.agentStatus.toUpperCase()}
+                        </span>
+
+                        <div className="inbound-item-actions">
+                          {!isReceived && !isIgnored && (
+                            <>
+                              <button
+                                type="button"
+                                className="dash-small-btn dash-small-btn--unlock"
+                                onClick={() => void onUnlockLetter(letter.id)}
+                                disabled={busyActions.has(`unlock-${letter.id}`)}
+                              >
+                                Unlock OCR ($0.20)
+                              </button>
+                              <button
+                                type="button"
+                                className="dash-small-btn dash-small-btn--ignore"
+                                onClick={() => void onIgnoreLetter(letter.id)}
+                                disabled={busyActions.has(`ignore-${letter.id}`)}
+                              >
+                                Ignore
+                              </button>
+                            </>
+                          )}
+                          {isReceived && (
+                            <button
+                              type="button"
+                              className="dash-small-btn dash-small-btn--view"
+                              onClick={() => onSelectLetterModal(letter)}
+                            >
+                              View Scanned OCR Text
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
