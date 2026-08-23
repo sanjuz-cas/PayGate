@@ -1,41 +1,29 @@
 ```
+# Build artifacts
+tsconfig.tsbuildinfo
+dist/
+build/
+target/
+
 # Dependencies
 node_modules/
 .pnpm-store/
 .npm/
 .yarn/
-.yarn-cache/
+.yalc/
+yalc.lock
 
-# Build outputs
-dist/
-build/
-coverage/
-.nyc_output/
-.eslintcache
+# Logs and temp files
+*.log
+*.tmp
+*.temp
 
 # Environment variables
 .env
 .env.local
-.env.*
-!.env.example
+*.env.*
 
-# Python specific
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git/modules/
+# Editors
 .vscode/
 .idea/
 *.swp
@@ -43,29 +31,17 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
-# TypeScript/JavaScript build outputs
-*.js.map
-*.ts.map
-*.jsx.map
-*.tsx.map
-.next/
-.nuxt/
-.output/
-.svelte-kit/
-.vercel/
-.netlify/
-
-# Lock files
-pnpm-lock.yaml
-yarn.lock
-package-lock.json
+# Coverage
+coverage/
+htmlcov/
+.coverage
 
 # OS generated files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+
+# Package lock files (already tracked in your repo but good to have in case)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 ```
