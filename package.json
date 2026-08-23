@@ -5,6 +5,8 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "pnpm -r build",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "build:ui": "node scripts/build-vercel.mjs",
     "check": "pnpm -r check",
     "dev:service": "node scripts/run-with-env.mjs .env.service -- pnpm --filter @juicebag-mail/service-api dev",
     "dev:verify": "node scripts/run-with-env.mjs .env.service -- pnpm --filter @juicebag-mail/address-verify-api dev",

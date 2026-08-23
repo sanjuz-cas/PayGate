@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm --filter @juicebag-mail/shared build && pnpm --filter @juicebag-mail/demo-ui build",
-  "outputDirectory": "apps/demo-ui/dist",
+  "buildCommand": "pnpm build:vercel",
+  "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
     {
