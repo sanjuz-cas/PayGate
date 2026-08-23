@@ -139,11 +139,13 @@ app.get("/balances", (c) => {
     return unauthorized;
   }
 
-  const connectedAddress = walletApprovals.status().connected
-    ? walletApprovals.status().address
-    : null;
-  void refreshAgentBalances(env, connectedAddress).catch(() => { });
-  return c.json(getCachedAgentBalances(env, connectedAddress));
+  const walletStatus = walletApprovals.status();
+  if (!walletStatus.connected || !walletStatus.address) {
+    return c.json({ algo: 0, usdc: 0, eurd: 0, address: "Connect Pera Wallet" });
+  }
+
+  void refreshAgentBalances(env, walletStatus.address).catch(() => { });
+  return c.json(getCachedAgentBalances(env, walletStatus.address));
 });
 
 app.get("/eco-stats", async (c) => {
