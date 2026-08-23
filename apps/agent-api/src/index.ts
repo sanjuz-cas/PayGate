@@ -125,7 +125,10 @@ app.get("/state", async (c) => {
     return unauthorized;
   }
 
-  void refreshAgentBalances(env).catch(() => { });
+  const connectedAddress = walletApprovals.status().connected
+    ? walletApprovals.status().address
+    : null;
+  void refreshAgentBalances(env, connectedAddress).catch(() => { });
   await juicebag.syncState(db).catch(() => { });
   return c.json(await buildAgentState({ db, env }));
 });
@@ -136,8 +139,11 @@ app.get("/balances", (c) => {
     return unauthorized;
   }
 
-  void refreshAgentBalances(env).catch(() => { });
-  return c.json(getCachedAgentBalances(env));
+  const connectedAddress = walletApprovals.status().connected
+    ? walletApprovals.status().address
+    : null;
+  void refreshAgentBalances(env, connectedAddress).catch(() => { });
+  return c.json(getCachedAgentBalances(env, connectedAddress));
 });
 
 app.get("/eco-stats", async (c) => {

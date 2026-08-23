@@ -10,34 +10,30 @@
 [![Build](https://img.shields.io/badge/monorepo%20build-passing-brightgreen?style=flat-square)](./package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-> **One-liner:** PayGate is an AI agent that autonomously buys the verification and processing services it needs mid-task — pay-per-use, via x402 on Algorand — under a spending policy a human sets once but never has to operate.
+> **One-liner:** PayGate is an AI agent that autonomously purchases verification and processing services — pay-per-use, via x402 on Algorand — under a spending policy a human sets once but doesn't operate.
 
 ---
 
-## 🎯 The problem: AI agents don't fit the subscription model
+## 🎯 The Problem
 
-AI agents increasingly need to complete multi-step tasks that require external, specialized capabilities: OCR, address or vendor verification, translation, compliance checks, and more. The tooling landscape assumes those capabilities are consumed by a human logging into a dashboard — not by an autonomous process deciding, mid-task, that it suddenly needs one.
+AI agents increasingly need to complete multi-step tasks that require external, specialized capabilities — OCR, address/vendor verification, translation, compliance checks. 
 
-That mismatch shows up as a few compounding problems:
+Today that means the agent's owner has to pre-register accounts, manage API keys, and pay subscriptions for every service the agent might ever need, even ones used rarely. That's friction that doesn't scale as agents become more autonomous.
 
-- **Pre-registration friction.** Before an agent can call a service, its owner has to sign up for an account, generate and store an API key, and hand the agent credentials for every service it might ever touch.
-- **Subscriptions don't track usage.** Most of those services bill monthly, whether the agent calls them once a day or once a quarter. Cost stops reflecting actual work done.
-- **It doesn't scale with autonomy.** As agents take on more open-ended tasks, the list of services they *might* need grows faster than any human wants to keep provisioning for. Pre-registering for all of them is wasted effort; missing one blocks the agent mid-task.
-- **Trust and custody.** Handing an agent a standing API key or a funded account is also handing it standing access — there's no clean way to say "you can spend a few cents on verification, and nothing more."
+---
 
-## 💡 The solution
+## 💡 The Solution
 
 PayGate gives an agent the ability to:
+1. **Discover** paid services it needs mid-task via an open service registry.
+2. **Decide** whether a given service is worth paying for using an LLM reasoning loop.
+3. **Pay for it instantly**, per-use, via x402 on Algorand — no pre-registered accounts, no API keys, no monthly SaaS subscriptions.
 
-1. **Discover** paid services it needs mid-task, via an open service registry.
-2. **Decide** whether a given service is worth paying for, using a real LLM reasoning loop.
-3. **Pay for it instantly, per use**, via x402 on Algorand — no pre-registered accounts, no stored API keys, no monthly subscription.
-
-The agent reasons about which services to call using an actual LLM tool-use loop, not hardcoded logic, and every payment is enforced against a spending guardrail the policy owner defines up front.
+The agent reasons about which services to call using a real LLM tool-use loop (not hardcoded logic), and every payment is enforced against a spending guardrail the policy owner defines up front.
 
 ---
 
-## 🔄 Concrete demo flow
+## 🔄 Concrete Demo Flow
 
 ```
 Incoming document (e.g. a supplier letter/invoice) arrives
@@ -54,50 +50,35 @@ Non-custodial wallet (Pera) authorizes the payment — the agent never holds a p
   ↓
 x402 payment settles on Algorand TestNet, verified live on-chain
   ↓
-Agent acts on the verified result within its budget & triggers an EcoGPT tree donation 🌱
+Agent acts on the verified result within its budget & triggers EcoGPT tree donation 🌱
 ```
 
 > [!NOTE]
-> **Why physical postal mail in the demo?**
-> Physical mail was our visual demo trigger because it proves a complex real-world pipeline end-to-end. PayGate itself is an input-agnostic trust and micropayment protocol — the same agent can just as easily ingest a Gmail thread, a supplier PDF invoice, a Slack request, or a WhatsApp message, and autonomously buy verification services on Algorand via x402.
+> **Why physical postal mail in the demo?**  
+> *"Physical postal mail was our visual demo trigger because it proves a complex real-world pipeline. PayGate is an input-agnostic trust and micro-payment protocol — the exact same agent can ingest real Gmails, supplier PDF invoices, Slack requests, or WhatsApp messages, and autonomously buy verification services on Algorand via x402!"*
 
 ---
 
-## ⚡ Why this matters technically
+## ⚡ Why This Matters Technically
 
-- **Real x402 payment flow** — live on Algorand TestNet (USDC ASA ID `10458941`) and MainNet (Quantoz EURD ASA ID `1221682136`), settled through the x402 facilitator.
-- **Genuine LLM tool-use harness** — the agent's decision-making is powered by an LLM reasoning loop (Groq SDK / Llama-3 / Mixtral) that evaluates incoming document context and chooses which tools to execute.
-- **Non-custodial by design** — the agent never stores a private key. A connected non-custodial wallet (Pera) authorizes spend, with hardcoded 24-hour spending guardrails limiting what the agent can request.
-- **Input-agnostic trust layer** — physical mail is the demo trigger because it's a concrete, relatable way to show an autonomous incoming event; the actual product is the trust/verification micropayment layer underneath, usable across Gmail, PDFs, Slack, or webhooks.
-- **EcoGPT climate action** — automated on-chain micro-donations ($0.01 USDC) dispatched to a verified tree-planting cause on every letter transaction, so each unit of agent activity is tied to a measurable, verifiable environmental offset rather than an opaque monthly "impact" claim — carbon-negative AI operations, by construction.
-
----
-
-## 🌱 EcoGPT: carbon-negative by default
-
-Every service PayGate's agent pays for is a real, metered transaction — which means every transaction is also a clean hook to attach a real-world outcome, instead of an opaque monthly "impact" claim bolted onto a subscription plan.
-
-That's what the EcoGPT integration does: on **every letter transaction**, PayGate automatically dispatches a small on-chain micro-donation ($0.01 USDC) to a verified tree-planting cause, alongside the payment for the service itself.
-
-- **Automatic, not opt-in per action** — the donation fires as part of the same transaction flow as the service payment, so it can't be skipped or forgotten.
-- **On-chain and verifiable** — like the service payments themselves, the donation settles on Algorand and is checkable via Pera Explorer, not just reported in a dashboard.
-- **Scales with usage, not time** — because it's tied to actual agent activity (per letter, per verification) rather than a flat monthly fee, impact grows exactly in step with what the agent actually does.
-- **Already live in the demo flow** — see step 8 in the [demo flow](#-concrete-demo-flow) above ("Agent acts on the verified result within its budget & triggers an EcoGPT tree donation 🌱").
-
-This is the same core idea as PayGate's spending model applied to sustainability: pay-per-use, on-chain, and verifiable — no flat fee, no vague "we plant trees" claim without a receipt.
+- **Real x402 payment flow**: Live on Algorand TestNet (USDC ASA ID `10458941`) and MainNet (Quantoz EURD ASA ID `1221682136`), settled through the x402 facilitator.
+- **Genuine LLM tool-use harness**: The agent's decision-making is powered by an LLM reasoning loop (Groq SDK / Llama-3 / Mixtral) that evaluates incoming document context and chooses which tools to execute.
+- **Non-custodial by design**: The agent never stores a private key. A connected non-custodial wallet (Pera) authorizes spend, with hardcoded 24-hour spending guardrails limiting what the agent can request.
+- **Input-agnostic trust layer**: We use physical mail as our demo trigger because it's a concrete, relatable way to show an autonomous incoming event — the actual product is the trust/verification micropayment layer underneath (usable across Gmail, PDFs, Slack, or webhooks).
+- **EcoGPT climate action**: Automated on-chain micro-donations ($0.01 USDC) dispatched to a verified tree planting cause on every letter transaction, creating verifiable carbon-negative AI operations.
 
 ---
 
-## 🎯 Being upfront about scope
+## 🎯 Being Upfront About Scope
 
-Given hackathon time constraints, we prioritized getting one core payment flow — address verification & mailbox registration — fully real and verifiable end-to-end, genuinely signed, settled, and checkable on-chain via Pera Explorer, rather than three partially-working ones. We're extending the same verified x402 pattern across all secondary service endpoints next.
+Given hackathon time constraints, we prioritized getting one core payment flow (address verification & mailbox registration) fully real and verifiable end-to-end — genuinely signed, settled, and checkable on-chain via Pera Explorer — rather than three partially-working ones. We are extending the same verified x402 pattern across all secondary service endpoints.
 
 ---
 
 ## 📦 Monorepo architecture
 
 ```
-paygate/
+d:\paygate
 ├── apps/
 │   ├── agent-api/          # Autonomous buyer agent (Hono, SQLite, LLM brain, guardrails, EcoGPT)
 │   ├── service-api/        # Postal ops seller hub (x402 server, physical print queue, OCR engine)
@@ -105,42 +86,36 @@ paygate/
 │   ├── demo-ui/            # React 18 + Vite live telemetry dashboard & Pera wallet bridge
 │   └── juicebag-mcp/       # Model Context Protocol (MCP) server for native AI tool calling
 ├── packages/
-│   └── shared/              # Shared schemas, pricing constants, types & event contracts
-└── scripts/                 # Environment launchers and wallet automation utilities
+│   └── shared/             # Shared schemas, pricing constants, types & event contracts
+└── scripts/                # Environment launchers and wallet automation utilities
 ```
 
 ---
 
-## 🚀 Getting started locally
+## 🚀 Getting Started Locally
 
 ### 1. Prerequisites
-
 - Node.js >= 20
 - `pnpm` >= 9 (`npm install -g pnpm`)
 
-### 2. Install dependencies & build
-
+### 2. Install Dependencies & Build
 ```bash
 pnpm install
 pnpm build
 ```
 
-### 3. Configure environment variables
-
+### 3. Configure Environment Variables
 Copy the template files:
-
 ```bash
 cp .env.agent.example .env.agent
 cp .env.service.example .env.service
 ```
 
-- **`.env.agent`** — paying Algorand TestNet mnemonic, Groq API key (for LLM chat), and ports.
-- **`.env.service`** — seller payout address (`SELLER_ADDRESS`), master webhook key, and facilitator config.
+- **`.env.agent`**: Contains paying Algorand TestNet mnemonic, Groq API Key (for LLM chat), and ports.
+- **`.env.service`**: Contains seller payout address (`SELLER_ADDRESS`), master webhook key, and facilitator config.
 
-### 4. Run services
-
+### 4. Run Services
 In separate terminal windows (or concurrently):
-
 ```bash
 # Terminal 1: Postal Service Hub (Port 4021)
 pnpm dev:service
@@ -152,19 +127,13 @@ pnpm dev:agent
 pnpm dev:ui
 ```
 
-### 5. Access the dashboard
-
-Open your browser to **[http://localhost:5173](http://localhost:5173)**.
+### 5. Access the Dashboard
+Open your browser to: **[http://localhost:5173](http://localhost:5173)**
 
 ---
 
-## 🧪 Interactive pitch diagrams
+## 🧪 Interactive Pitch Diagrams
 
 For visual presentations and architectural walk-throughs:
-
-- **Interactive visual slide deck** — open [`presentation_diagram.html`](./presentation_diagram.html) in any browser.
-- **Full architecture & sequence docs** — read [`ARCHITECTURE_DATA_FLOW.md`](./ARCHITECTURE_DATA_FLOW.md).
-
-## License
-
-MIT
+- **Interactive Visual Slide Deck:** Open [`presentation_diagram.html`](file:///d:/paygate/presentation_diagram.html) in any browser.
+- **Full Architecture & Sequence Docs:** Read [`ARCHITECTURE_DATA_FLOW.md`](file:///d:/paygate/ARCHITECTURE_DATA_FLOW.md).
