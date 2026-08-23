@@ -912,6 +912,7 @@ serve(
     port: env.AGENT_PORT,
   },
   () => {
-    console.log(`Agent API listening on ${env.AGENT_BASE_URL}`);
+    console.log(`Agent API listening on port ${env.AGENT_PORT}`);
+    console.log(`[agent] Connected to Service Hub at: ${env.SERVICE_BASE_URL}`);
   },
 );
