@@ -1,84 +1,118 @@
-# PayGate — Autonomous Trust-Services Agent
+# PayGate — Autonomous Trust-Services & Micropayment Protocol for AI Agents
 
-[![Algorand](https://img.shields.io/badge/Blockchain-Algorand%20TestNet-000000?style=flat-square&logo=algorand&logoColor=white)](https://testnet.explorer.perawallet.app/)
-[![x402 Protocol](https://img.shields.io/badge/Protocol-x402%20AVM-10b981?style=flat-square)](https://github.com/x402/protocol)
-[![Token](https://img.shields.io/badge/Currency-USDC%20%7C%20EURD-2775ca?style=flat-square)](https://quantoz.com/eurd)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Wallet](https://img.shields.io/badge/Wallet-Pera%20Connect-ffe600?style=flat-square&logoColor=black&labelColor=1a1a1a)](https://perawallet.app/)
-[![EcoGPT](https://img.shields.io/badge/EcoGPT-Carbon%20Negative%20🌱-059669?style=flat-square)](./ARCHITECTURE_DATA_FLOW.md)
-[![Build](https://img.shields.io/badge/monorepo%20build-passing-brightgreen?style=flat-square)](./package.json)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Algorand](https://img.shields.io/badge/Blockchain-Algorand%20TestNet%20%7C%20MainNet-000000?style=for-the-badge&logo=algorand&logoColor=white)](https://testnet.explorer.perawallet.app/)
+[![x402 Protocol](https://img.shields.io/badge/Protocol-x402%20AVM%20Standard-10b981?style=for-the-badge)](https://github.com/x402/protocol)
+[![Token](https://img.shields.io/badge/Settlement-USDC%20%7C%20Quantoz%20EURD-2775ca?style=for-the-badge)](https://quantoz.com/eurd)
+[![EcoGPT](https://img.shields.io/badge/EcoGPT-Carbon%20Negative%20AI%20🌱-059669?style=for-the-badge)](https://testnet.explorer.perawallet.app/address/JJUHJKQ2VQJAA4FK5CPKUHGK5BXY5FF2IREWFN64N62JZFHL3UPMBGAFZE)
+[![Pera Wallet](https://img.shields.io/badge/Non--Custodial-Pera%20Connect-ffe600?style=for-the-badge&logoColor=black&labelColor=1a1a1a)](https://perawallet.app/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-> **One-liner:** PayGate is an AI agent that autonomously purchases verification and processing services — pay-per-use, via x402 on Algorand — under a spending policy a human sets once but doesn't operate.
+> **One-Liner:** PayGate is an autonomous trust-services agent that eliminates API keys and SaaS subscriptions by discovering, negotiating, and purchasing real-time processing capabilities (OCR, address verification, postal dispatch) on-demand using **x402 micropayments on Algorand** under human-defined guardrails.
 
 ---
 
-## 🎯 The Problem
+## 🛑 The Core Problem: The AI Agent Subscription Bottleneck
 
-AI agents increasingly need to complete multi-step tasks that require external, specialized capabilities — OCR, address/vendor verification, translation, compliance checks. 
+As AI agents evolve from conversational chatbots to autonomous task-executors, they inevitably require external, specialized capabilities:
+* 🔍 **Document OCR & parsing**
+* 📍 **Official Address & Business Identity Verification**
+* 📬 **Physical Document Dispatch & Notarization**
+* ⚖️ **Compliance, KYC & Sanction Screenings**
+* 🌐 **Specialized translation & proprietary LLM endpoints**
 
-Today that means the agent's owner has to pre-register accounts, manage API keys, and pay subscriptions for every service the agent might ever need, even ones used rarely. That's friction that doesn't scale as agents become more autonomous.
-
----
-
-## 💡 The Solution
-
-PayGate gives an agent the ability to:
-1. **Discover** paid services it needs mid-task via an open service registry.
-2. **Decide** whether a given service is worth paying for using an LLM reasoning loop.
-3. **Pay for it instantly**, per-use, via x402 on Algorand — no pre-registered accounts, no API keys, no monthly SaaS subscriptions.
-
-The agent reasons about which services to call using a real LLM tool-use loop (not hardcoded logic), and every payment is enforced against a spending guardrail the policy owner defines up front.
+### ❌ How It Works Today (The Broken Web2 Model):
+1. **API Key & Pre-Registration Overhead:** The human owner must manually create accounts, complete KYC, and provision API keys for *every single service* an agent might ever need.
+2. **Wasteful Monthly SaaS Subscriptions:** Agents needing an occasional OCR scan or address lookup force companies to pay $50–$500/month subscriptions for rare, sporadic calls.
+3. **Custodial Risk & Card Leaks:** Giving autonomous agents raw credit cards or unrestricted corporate bank access is a catastrophic security liability.
+4. **Agent Friction & Stalled Workflows:** When an agent encounters an unconfigured external tool mid-execution, it halts completely because it cannot pay for its own tools.
 
 ---
 
-## 🔄 Concrete Demo Flow
+## 💡 The Solution: PayGate Autonomous Trust & Micropayment Protocol
+
+PayGate fundamentally changes how autonomous agents consume external utility by implementing **HTTP 402 Payment Required (x402)** on the Algorand blockchain:
 
 ```
-Incoming document (e.g. a supplier letter/invoice) arrives
-  ↓
-Agent reads it and extracts context
-  ↓
-Agent autonomously decides address/vendor verification is needed
-  ↓
-Agent discovers the verification service via a service registry
-  ↓
-Agent proposes the payment ($0.02 USDC)
-  ↓
-Non-custodial wallet (Pera) authorizes the payment — the agent never holds a private key
-  ↓
-x402 payment settles on Algorand TestNet, verified live on-chain
-  ↓
-Agent acts on the verified result within its budget & triggers EcoGPT tree donation 🌱
+                      ┌─────────────────────────────────────────┐
+                      │          Incoming Trigger / Task        │
+                      │  (Physical Letter, PDF, Invoice, Email) │
+                      └────────────────────┬────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │       PayGate AI Agent Brain (LLM)      │
+                      │   • Evaluates document context          │
+                      │   • Detects missing capabilities        │
+                      └────────────────────┬────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │      Dynamic Service Discovery          │
+                      │  Discovers pricing & x402 endpoints     │
+                      │  (e.g., Address Verify = $0.02 USDC)    │
+                      └────────────────────┬────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │    Human Policy Guardrail & Approval    │
+                      │  • Enforces Daily Cap ($10.00 USDC)     │
+                      │  • Non-Custodial Pera Wallet Signing    │
+                      └────────────────────┬────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │    x402 On-Chain Micropayment Probe     │
+                      │  • Algorand TestNet (USDC ASA 10458941) │
+                      │  • MainNet (Quantoz EURD ASA 1221682136)│
+                      │  • Settled via Plausible Facilitator    │
+                      └────────────────────┬────────────────────┘
+                                           │
+                       ┌───────────────────┴───────────────────┐
+                       ▼                                       ▼
+    ┌──────────────────────────────────────┐ ┌──────────────────────────────────────┐
+    │     Decoupled Service Execution      │ │     EcoGPT Climate Action Engine     │
+    │  Unlocks verified OCR, address checks│ │  Streams on-chain micro-donation to  │
+    │  and queues physical postal delivery │ │  verified tree-planting cause ($0.01)│
+    └──────────────────────────────────────┘ └──────────────────────────────────────┘
 ```
 
-> [!NOTE]
-> **Why physical postal mail in the demo?**  
-> *"Physical postal mail was our visual demo trigger because it proves a complex real-world pipeline. PayGate is an input-agnostic trust and micro-payment protocol — the exact same agent can ingest real Gmails, supplier PDF invoices, Slack requests, or WhatsApp messages, and autonomously buy verification services on Algorand via x402!"*
+### ✨ Key Capabilities:
+* **Zero Pre-Registration / No API Keys:** The agent pays per request ($0.02 USDC / €0.05 EURD) directly over HTTP headers without accounts or credit cards.
+* **Non-Custodial Spending Policy:** The agent never holds custody of private keys. A human sets a spending cap (e.g., $10/day), and transactions are signed via **Pera Mobile Wallet** or secure ephemeral AVM signers.
+* **LLM Tool-Use Harness:** Powered by Groq / Llama 3 / Mixtral, the agent autonomously reasons about whether an external service is worth the price before spending money.
+* **Input-Agnostic Trust Layer:** Physical postal mail serves as our flagship real-world demo, but the protocol natively ingests Gmails, PDFs, webhooks, or Slack messages.
 
 ---
 
-## ⚡ Why This Matters Technically
+## 🌱 EcoGPT: Verifiable Carbon-Negative AI Operations
 
-- **Real x402 payment flow**: Live on Algorand TestNet (USDC ASA ID `10458941`) and MainNet (Quantoz EURD ASA ID `1221682136`), settled through the x402 facilitator.
-- **Genuine LLM tool-use harness**: The agent's decision-making is powered by an LLM reasoning loop (Groq SDK / Llama-3 / Mixtral) that evaluates incoming document context and chooses which tools to execute.
-- **Non-custodial by design**: The agent never stores a private key. A connected non-custodial wallet (Pera) authorizes spend, with hardcoded 24-hour spending guardrails limiting what the agent can request.
-- **Input-agnostic trust layer**: We use physical mail as our demo trigger because it's a concrete, relatable way to show an autonomous incoming event — the actual product is the trust/verification micropayment layer underneath (usable across Gmail, PDFs, Slack, or webhooks).
-- **EcoGPT climate action**: Automated on-chain micro-donations ($0.01 USDC) dispatched to a verified tree planting cause on every letter transaction, creating verifiable carbon-negative AI operations.
+AI workloads consume vast amounts of energy. PayGate turns AI execution into an active force for ecological restoration through **EcoGPT**:
+
+* **Automated Micro-Donations:** On every settled x402 transaction (letter dispatch, verification, unlock), PayGate routes an automated on-chain micro-contribution ($0.01 USDC) directly to the **EcoGPT Verified Forest Cause Wallet**.
+* **On-Chain Carbon Offsetting:** Each contribution directly finances real-world verified reforestation initiatives.
+* **Transparent Verifiability:** View every single tree planted in real-time directly on Algorand Pera Explorer:
+  * **EcoGPT Cause Address:** [`JJUHJKQ2VQJAA4FK5CPKUHGK5BXY5FF2IREWFN64N62JZFHL3UPMBGAFZE`](https://testnet.explorer.perawallet.app/address/JJUHJKQ2VQJAA4FK5CPKUHGK5BXY5FF2IREWFN64N62JZFHL3UPMBGAFZE)
+* **Gamified Dashboard Widget:** Features an interactive scenic travel card tracking live tree-count metrics and ecological impact.
 
 ---
 
-## 🎯 Being Upfront About Scope
+## ⚡ Technical Proofs & Blockchain Specifications
 
-Given hackathon time constraints, we prioritized getting one core payment flow (address verification & mailbox registration) fully real and verifiable end-to-end — genuinely signed, settled, and checkable on-chain via Pera Explorer — rather than three partially-working ones. We are extending the same verified x402 pattern across all secondary service endpoints.
+| Component | TestNet Standard | MainNet Standard |
+| :--- | :--- | :--- |
+| **Blockchain** | Algorand TestNet | Algorand MainNet |
+| **Settlement Asset** | Circle USDC (`10458941`) | Quantoz EURD (`1221682136`) |
+| **x402 Facilitator** | `https://facilitator.goplausible.xyz` | Plausible Production Gateway |
+| **Wallet Protocol** | Pera Connect v1.6 | Pera Mobile / Web |
+| **Payment Standard** | HTTP 402 / AVM Payment Payload | RFC 9110 / x402 Standard |
+| **Agent Reasoning** | Groq Llama 3.3 70B Versatile | Groq / Anthropic Tool-Use |
 
 ---
 
 ## 📦 Monorepo Architecture
 
 ```
-d:\paygate
+paygate/
 ├── apps/
 │   ├── agent-api/          # Autonomous buyer agent (Hono, SQLite, LLM brain, Guardrails, EcoGPT)
 │   ├── service-api/        # Postal ops seller hub (x402 server, physical print queue, OCR engine)
@@ -87,53 +121,68 @@ d:\paygate
 │   └── juicebag-mcp/       # Model Context Protocol (MCP) server for native AI tool calling
 ├── packages/
 │   └── shared/             # Shared schemas, pricing constants, types & event contracts
-└── scripts/                # Environment launchers and wallet automation utilities
+├── scripts/                # Vercel & Render build pipelines and environment helpers
+├── ARCHITECTURE_DATA_FLOW.md  # Detailed sequence and architecture diagrams
+└── presentation_diagram.html # Standalone glassmorphic slide deck for judges
 ```
 
 ---
 
-## 🚀 Getting Started Locally
+## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- Node.js >= 20
-- `pnpm` >= 9 (`npm install -g pnpm`)
+* **Node.js** >= 20.x
+* **pnpm** >= 9.x (`npm install -g pnpm`)
+* **Pera Mobile Wallet** (configured on Algorand TestNet)
 
-### 2. Install Dependencies & Build
+### 2. Installation & Build
 ```bash
+git clone https://github.com/sanjuz-cas/PayGate.git
+cd PayGate
 pnpm install
 pnpm build
 ```
 
-### 3. Configure Environment Variables
-Copy the template files:
+### 3. Setup Environment Variables
 ```bash
 cp .env.agent.example .env.agent
 cp .env.service.example .env.service
 ```
 
-- **`.env.agent`**: Contains paying Algorand TestNet mnemonic, Groq API Key (for LLM chat), and ports.
-- **`.env.service`**: Contains seller payout address (`SELLER_ADDRESS`), master webhook key, and facilitator config.
+* In `.env.agent`: Paste your 25-word Algorand TestNet paying mnemonic and optional `GROQ_API_KEY`.
+* In `.env.service`: Paste your receiving `SELLER_ADDRESS` (Pera Wallet public key).
 
-### 4. Run Services
-In separate terminal windows (or concurrently):
+### 4. Run the Full Suite Locally
 ```bash
-# Terminal 1: Postal Service Hub (Port 4021)
+# Terminal 1: Service API (Port 4021)
 pnpm dev:service
 
-# Terminal 2: Autonomous Agent API (Port 4022)
+# Terminal 2: Agent API (Port 4022)
 pnpm dev:agent
 
-# Terminal 3: Demo Dashboard UI (Port 5173)
+# Terminal 3: Telemetry Dashboard UI (Port 5173)
 pnpm dev:ui
 ```
 
-### 5. Access the Dashboard
-Open your browser to: **[http://localhost:5173](http://localhost:5173)**
+Visit **`http://localhost:5173`** to access the live PayGate mission control.
 
 ---
 
-## 🧪 Interactive Pitch Diagrams
+## 🌐 Cloud Deployment
 
-For visual presentations and architectural walk-throughs:
-- **Interactive Visual Slide Deck:** Open [`presentation_diagram.html`](file:///d:/paygate/presentation_diagram.html) in any browser.
-- **Full Architecture & Sequence Docs:** Read [`ARCHITECTURE_DATA_FLOW.md`](file:///d:/paygate/ARCHITECTURE_DATA_FLOW.md).
+* **Frontend Dashboard:** Deployed on **Vercel** (`apps/demo-ui`) with SPA routing and zero-config root mirroring.
+* **Backend Services:** Deployed on **Render** (`paygate-service` and `paygate-agent`) with persistent SQLite storage and x402 event webhooks.
+
+For complete cloud deployment walkthroughs, see [`DEPLOYMENT.md`](./DEPLOYMENT.md).
+
+---
+
+## 👥 Hackathon Team & Presentation Assets
+
+* 📊 **Presentation Deck:** Open [`presentation_diagram.html`](./presentation_diagram.html) for an interactive visual slide deck.
+* 📐 **System Diagrams:** View complete Mermaid sequence diagrams in [`ARCHITECTURE_DATA_FLOW.md`](./ARCHITECTURE_DATA_FLOW.md).
+
+---
+
+## 📜 License
+Distributed under the **MIT License**. See `LICENSE` for more information.
