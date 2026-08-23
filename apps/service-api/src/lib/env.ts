@@ -53,5 +53,6 @@ export function loadServiceEnv(input: NodeJS.ProcessEnv): ServiceEnv {
     EURD_FACILITATOR_URL: cleanUrl(input.EURD_FACILITATOR_URL, EURD_FACILITATOR_URL),
     ALGOD_URL: cleanUrl(input.ALGOD_URL, ALGOD_TESTNET_URL),
     ALGOD_MAINNET_URL: cleanUrl(input.ALGOD_MAINNET_URL, ALGOD_MAINNET_URL),
+    SELLER_ADDRESS: (input.SELLER_ADDRESS ?? "").trim(),
   });
 }
