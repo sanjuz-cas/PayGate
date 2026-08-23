@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import { z } from "zod";
 
 import {
@@ -9,29 +7,42 @@ import {
   SERVICE_PORT,
 } from "@juicebag-mail/shared";
 
+import path from "node:path";
+
+import {
+  DEFAULT_AGENT_PORT,
+  DEFAULT_SERVICE_PORT,
+  ALGOD_TESTNET_URL as CONST_ALGOD_TESTNET_URL,
+  ALGOD_MAINNET_URL as CONST_ALGOD_MAINNET_URL,
+  DEFAULT_DAILY_CAP_USDC,
+  DEFAULT_PRIORITY_KEYWORDS,
+  DEFAULT_SKIP_KEYWORDS,
+  DEFAULT_ALLOWLIST_SENDERS,
+} from "../constants/index.js";
+
 const envSchema = z.object({
-  AGENT_PORT: z.coerce.number().int().positive().default(AGENT_PORT),
-  AGENT_BASE_URL: z.string().url().default(`http://localhost:${AGENT_PORT}`),
+  AGENT_PORT: z.coerce.number().int().positive().default(DEFAULT_AGENT_PORT),
+  AGENT_BASE_URL: z.string().url().default(`http://localhost:${DEFAULT_AGENT_PORT}`),
   AGENT_DB_PATH: z.string().default(path.resolve(process.cwd(), ".data/agent.db")),
   VITE_AGENT_UI_TOKEN: z.string().default("juicebag-agent-ui-demo-token"),
-  SERVICE_BASE_URL: z.string().url().default(`http://localhost:${SERVICE_PORT}`),
-  ALGOD_URL: z.string().url().default(ALGOD_TESTNET_URL),
-  ALGOD_MAINNET_URL: z.string().url().default(ALGOD_MAINNET_URL),
+  SERVICE_BASE_URL: z.string().url().default(`http://localhost:${DEFAULT_SERVICE_PORT}`),
+  ALGOD_URL: z.string().url().default(CONST_ALGOD_TESTNET_URL),
+  ALGOD_MAINNET_URL: z.string().url().default(CONST_ALGOD_MAINNET_URL),
   AGENT_MNEMONIC: z.string().optional(),
   AVM_MNEMONIC: z.string().optional(),
-  AGENT_DAILY_CAP_USDC: z.coerce.number().positive().default(5.0),
+  AGENT_DAILY_CAP_USDC: z.coerce.number().positive().default(DEFAULT_DAILY_CAP_USDC),
   AUTONOMOUS_UNLOCK_ENABLED: z
     .preprocess((val) => (val === "false" || val === false ? false : true), z.boolean())
     .default(true),
   AUTONOMOUS_PRIORITY_KEYWORDS: z
     .string()
-    .default("tax,invoice,urgent,landlord,government,official,court,bank,security,notice,receipt,bill"),
+    .default(DEFAULT_PRIORITY_KEYWORDS.join(",")),
   AUTONOMOUS_SKIP_KEYWORDS: z
     .string()
-    .default("promo,promotion,lottery,marketing,advertisement,newsletter,discount,special offer,free gift,casino,spam,deal"),
+    .default(DEFAULT_SKIP_KEYWORDS.join(",")),
   AUTONOMOUS_ALLOWLIST_SENDERS: z
     .string()
-    .default("Tax Office,Landlord,City Government,Bürgeramt,Finanzamt,Bank,State Revenue,City Tax Office"),
+    .default(DEFAULT_ALLOWLIST_SENDERS.join(",")),
   ANTHROPIC_API_KEY: z.string().optional(),
 });
 

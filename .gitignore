@@ -4,68 +4,52 @@ node_modules/
 .pnpm-store/
 .npm/
 .yarn/
-.yarn-cache/
 
 # Build outputs
 dist/
 build/
-coverage/
-.nyc_output/
+out/
+.turbo/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
 .eslintcache
 
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
+# ------------------------------------------------------------------------------
+# 5. Logs & Debugging
+# ------------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Python specific
+# ------------------------------------------------------------------------------
+# 6. Python & Virtual Environments (if applicable)
+# ------------------------------------------------------------------------------
+.venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git/modules/
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
 
-# TypeScript/JavaScript build outputs
-*.js.map
-*.ts.map
-*.jsx.map
-*.tsx.map
-.next/
-.nuxt/
-.output/
-.svelte-kit/
-.vercel/
-.netlify/
-
-# Lock files
-pnpm-lock.yaml
-yarn.lock
-package-lock.json
-
-# OS generated files
+# ------------------------------------------------------------------------------
+# 7. Operating System & IDE Files
+# ------------------------------------------------------------------------------
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
 Thumbs.db
-```
+ehthumbs.db
+
+# IDEs & Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.sw?
+*.bak
+*.tmp
+*.temp
