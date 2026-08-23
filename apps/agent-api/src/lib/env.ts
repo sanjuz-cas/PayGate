@@ -54,11 +54,25 @@ export type AgentEnv = z.infer<typeof envSchema> & {
   mnemonic: string;
 };
 
+function normalizeUrl(url?: string): string | undefined {
+  if (!url || typeof url !== "string") return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
 export function loadAgentEnv(input: NodeJS.ProcessEnv): AgentEnv {
-  const parsed = envSchema.parse({
+  const normalizedInput = {
     ...input,
     AGENT_PORT: input.PORT ?? input.AGENT_PORT,
-  });
+    SERVICE_BASE_URL: normalizeUrl(input.SERVICE_BASE_URL) ?? input.SERVICE_BASE_URL,
+    AGENT_BASE_URL: normalizeUrl(input.AGENT_BASE_URL) ?? input.AGENT_BASE_URL,
+  };
+
+  const parsed = envSchema.parse(normalizedInput);
   const mnemonic = parsed.AGENT_MNEMONIC ?? parsed.AVM_MNEMONIC;
   if (!mnemonic) {
     throw new Error("AGENT_MNEMONIC or AVM_MNEMONIC is required");

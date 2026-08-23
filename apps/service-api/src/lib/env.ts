@@ -27,11 +27,23 @@ const envSchema = z.object({
     .default("juicebag-mail-demo-webhook-master-key"),
 });
 
+function normalizeUrl(url?: string): string | undefined {
+  if (!url || typeof url !== "string") return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
 export type ServiceEnv = z.infer<typeof envSchema>;
 
 export function loadServiceEnv(input: NodeJS.ProcessEnv): ServiceEnv {
   return envSchema.parse({
     ...input,
     SERVICE_PORT: input.PORT ?? input.SERVICE_PORT,
+    SERVICE_BASE_URL: normalizeUrl(input.SERVICE_BASE_URL) ?? input.SERVICE_BASE_URL,
+    FACILITATOR_URL: normalizeUrl(input.FACILITATOR_URL) ?? input.FACILITATOR_URL,
   });
 }
