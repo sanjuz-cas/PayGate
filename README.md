@@ -1,5 +1,15 @@
 # PayGate — Autonomous Trust-Services Agent
 
+[![Algorand](https://img.shields.io/badge/Blockchain-Algorand%20TestNet-000000?style=flat-square&logo=algorand&logoColor=white)](https://testnet.explorer.perawallet.app/)
+[![x402 Protocol](https://img.shields.io/badge/Protocol-x402%20AVM-10b981?style=flat-square)](https://github.com/x402/protocol)
+[![Token](https://img.shields.io/badge/Currency-USDC%20%7C%20EURD-2775ca?style=flat-square)](https://quantoz.com/eurd)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Wallet](https://img.shields.io/badge/Wallet-Pera%20Connect-ffe600?style=flat-square&logoColor=black&labelColor=1a1a1a)](https://perawallet.app/)
+[![EcoGPT](https://img.shields.io/badge/EcoGPT-Carbon%20Negative%20🌱-059669?style=flat-square)](./ARCHITECTURE_DATA_FLOW.md)
+[![Build](https://img.shields.io/badge/monorepo%20build-passing-brightgreen?style=flat-square)](./package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+
 > **One-liner:** PayGate is an AI agent that autonomously purchases verification and processing services — pay-per-use, via x402 on Algorand — under a spending policy a human sets once but doesn't operate.
 
 ---
