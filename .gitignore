@@ -1,47 +1,70 @@
 ```
-# Build artifacts
-tsconfig.tsbuildinfo
+# Dependencies
+node_modules/
+
+# Build outputs
 dist/
 build/
 target/
 
-# Dependencies
-node_modules/
-.pnpm-store/
-.npm/
-.yarn/
-.yalc/
-yalc.lock
+# Python related
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.python-version
+.pytest_cache/
+.mypy_cache/
+.coverage
 
-# Logs and temp files
+# Logs
 *.log
-*.tmp
-*.temp
 
 # Environment variables
 .env
 .env.local
-*.env.*
+.env.*
 
-# Editors
+# IDE specific
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 .DS_Store
 Thumbs.db
 
-# Coverage
+# Coverage reports
 coverage/
 htmlcov/
-.coverage
+.coverage*
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Package lock files (already tracked in your repo but good to have in case)
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
