@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 
 import { and, asc, desc, eq, gt } from "drizzle-orm";
 import type { Context, Hono } from "hono";
+import { z } from "zod";
 
 import {
   inboundLetterReceivedEventType,
@@ -673,6 +674,81 @@ export function registerPublicRoutes(
         pageCount: parsed.data.pageCount,
         pdfPath,
         receivedAt: parsed.data.receivedAt,
+      },
+    });
+
+    return c.json(result, 201);
+  });
+
+  app.post("/internal/inbound-emails", async (c) => {
+    const unauthorized = requireAdmin(c, env);
+    if (unauthorized) {
+      return unauthorized;
+    }
+
+    const schema = z.object({
+      mailboxId: z.string().min(1),
+      from: z.string().min(1),
+      fromName: z.string().optional(),
+      subject: z.string().min(1),
+      bodyText: z.string().optional(),
+      bodyHtml: z.string().optional(),
+      attachments: z
+        .array(
+          z.object({
+            filename: z.string(),
+            text: z.string().optional(),
+          }),
+        )
+        .optional(),
+    });
+
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.flatten() }, 400);
+    }
+
+    const agentRows = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.mailboxId, parsed.data.mailboxId))
+      .limit(1);
+    const agent = agentRows[0];
+    if (!agent) {
+      return c.json({ error: "No registered agent for mailbox" }, 404);
+    }
+
+    const letterId = createId("in_em");
+    const senderDisplay = parsed.data.fromName
+      ? `${parsed.data.fromName} <${parsed.data.from}>`
+      : parsed.data.from;
+    const envelopeSummary = `[Gmail / Email] ${parsed.data.subject}`;
+    const fullText = [
+      parsed.data.bodyText,
+      ...(parsed.data.attachments?.map((a: { filename: string; text?: string }) => `[Attachment: ${a.filename}]\n${a.text ?? ""}`) ?? []),
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const letterDir = path.join(env.STORAGE_DIR, "inbound", parsed.data.mailboxId, letterId);
+    fs.mkdirSync(letterDir, { recursive: true });
+    const pdfPath = path.join(letterDir, "email.txt");
+    fs.writeFileSync(pdfPath, fullText);
+
+    const result = await createInboundLetterRecord({
+      agent,
+      db,
+      env,
+      input: {
+        envelopeSummary,
+        fromName: senderDisplay,
+        letterId,
+        mailboxId: parsed.data.mailboxId,
+        ocrText: fullText,
+        pageCount: 1,
+        pdfPath,
+        receivedAt: nowIso(),
       },
     });
 

@@ -545,6 +545,213 @@ app.post("/actions/evaluate-letter", async (c) => {
   return c.json({ decision });
 });
 
+async function handleIncomingEmailWebhook(c: Context) {
+  const schema = z.object({
+    from: z.string().min(1),
+    fromName: z.string().optional(),
+    to: z.string().optional(),
+    subject: z.string().min(1),
+    bodyText: z.string().optional(),
+    bodyHtml: z.string().optional(),
+    attachments: z
+      .array(
+        z.object({
+          filename: z.string(),
+          text: z.string().optional(),
+        }),
+      )
+      .optional(),
+  });
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const storedRows = await db.select().from(registration).where(eq(registration.id, 1)).limit(1);
+  const stored = storedRows[0];
+  const mailboxId = stored?.mailboxId ?? "mbx_default";
+
+  const letterId = createId("in_em");
+  const senderDisplay = parsed.data.fromName
+    ? `${parsed.data.fromName} <${parsed.data.from}>`
+    : parsed.data.from;
+  const envelopeSummary = `[Gmail / Email] ${parsed.data.subject}`;
+  const fullText = [
+    parsed.data.bodyText,
+    ...(parsed.data.attachments?.map((a) => `[Attachment: ${a.filename}]\n${a.text ?? ""}`) ?? []),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  await db
+    .insert(inboundLetters)
+    .values({
+      id: letterId,
+      mailboxId,
+      fromName: senderDisplay,
+      receivedAt: nowIso(),
+      pageCount: 1,
+      envelopeSummary,
+      serviceStatus: "pending",
+      agentStatus: "pending",
+      ocrText: fullText || null,
+      unlockPaymentTxid: null,
+      notifiedAt: nowIso(),
+      createdAt: nowIso(),
+    })
+    .onConflictDoNothing();
+
+  await events.publish({
+    type: "webhook.received",
+    message: `Received incoming email from ${senderDisplay}: "${parsed.data.subject}"`,
+  });
+
+  // Evaluate Autonomous Decision
+  const decision = await evaluateInboundLetter(
+    {
+      letterId,
+      from: senderDisplay,
+      envelopeSummary,
+      pageCount: 1,
+    },
+    env,
+  );
+
+  console.log(
+    `[agent:autonomy] Email ${letterId} from "${senderDisplay}" -> Decision: ${decision.decision.toUpperCase()} (${decision.reason})`,
+  );
+
+  await events.publish({
+    type: "autonomy_decision",
+    message: decision.reason,
+    letterId: decision.letterId,
+    fromName: decision.fromName,
+    decision: decision.decision,
+    reason: decision.reason,
+    confidence: decision.confidence,
+  });
+
+  if (env.AUTONOMOUS_UNLOCK_ENABLED) {
+    if (decision.decision === "unlock") {
+      const unlockCost = 0.2;
+      const guardrailCheck = await checkSpendGuardrail(db, env, unlockCost);
+
+      if (!guardrailCheck.allowed) {
+        console.warn(`[agent:autonomy] Autonomous unlock blocked by guardrail: ${guardrailCheck.reason}`);
+        await recordSpendLog(db, {
+          routeKey: ROUTE_KEYS.inboundUnlock,
+          action: "autonomous_unlock",
+          amountUsd: unlockCost,
+          currency: "usdc",
+          status: "blocked",
+        });
+
+        await events.publish({
+          type: "budget_blocked",
+          message: guardrailCheck.reason ?? "Autonomous unlock blocked by daily budget cap",
+          routeKey: ROUTE_KEYS.inboundUnlock,
+          requestedAmount: unlockCost,
+          currentSpend: guardrailCheck.currentSpendUsdc,
+          cap: guardrailCheck.dailyCapUsdc,
+        });
+
+        await recordAutonomyDecision(db, decision, false);
+      } else {
+        console.log(`[agent:autonomy] Executing autonomous unlock for email ${letterId}...`);
+        try {
+          const unlockResult = await juicebag.unlockLetter(
+            db,
+            { letterId, currency: "usdc" },
+            "usdc",
+          );
+          const txid = unlockResult.payment?.transaction ?? unlockResult.data.x402?.txid;
+
+          await db
+            .update(inboundLetters)
+            .set({
+              serviceStatus: "received",
+              agentStatus: "received",
+              ocrText: unlockResult.data?.ocrText ?? fullText,
+              unlockPaymentTxid: txid ?? null,
+            })
+            .where(eq(inboundLetters.id, letterId));
+
+          if (txid) {
+            await juicebag.recordPayment(db, {
+              routeKey: ROUTE_KEYS.inboundUnlock,
+              txid,
+              amountUsd: unlockCost,
+              network: ALGORAND_TESTNET_CAIP2,
+              payTo: "",
+            });
+
+            await recordSpendLog(db, {
+              routeKey: ROUTE_KEYS.inboundUnlock,
+              action: "autonomous_unlock",
+              amountUsd: unlockCost,
+              currency: "usdc",
+              txid,
+              status: "settled",
+            });
+          }
+
+          await events.publish({
+            type: "letter.unlocked",
+            message: `[Autonomous Action] Unlocked email document ${letterId}`,
+            txid,
+            network: ALGORAND_TESTNET_CAIP2,
+          });
+
+          await recordAutonomyDecision(db, decision, true);
+          void refreshAgentBalances(env).catch(() => {});
+        } catch (err) {
+          console.error(`[agent:autonomy] Autonomous unlock failed for email ${letterId}:`, err);
+          await recordAutonomyDecision(db, decision, false);
+        }
+      }
+    } else if (decision.decision === "ignore") {
+      console.log(`[agent:autonomy] Executing autonomous ignore for spam email ${letterId}`);
+      await db
+        .update(inboundLetters)
+        .set({ agentStatus: "ignored" })
+        .where(eq(inboundLetters.id, letterId));
+
+      await events.publish({
+        type: "letter.ignored",
+        message: `[Autonomous Action] Ignored spam email ${letterId} (${decision.reason})`,
+      });
+
+      await recordAutonomyDecision(db, decision, true);
+    } else {
+      await recordAutonomyDecision(db, decision, false);
+    }
+  }
+
+  return c.json({
+    ok: true,
+    letterId,
+    decision,
+    from: senderDisplay,
+    subject: parsed.data.subject,
+  });
+}
+
+app.post("/webhooks/gmail", async (c) => {
+  return await handleIncomingEmailWebhook(c);
+});
+
+app.post("/webhooks/email", async (c) => {
+  return await handleIncomingEmailWebhook(c);
+});
+
+app.post("/actions/ingest-email", async (c) => {
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+  return await handleIncomingEmailWebhook(c);
+});
+
 app.post("/webhooks/incoming-mail", async (c) => {
   const rawBody = await c.req.text();
   const storedRows = await db.select().from(registration).where(eq(registration.id, 1)).limit(1);

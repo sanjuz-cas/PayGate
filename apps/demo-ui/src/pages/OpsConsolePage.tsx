@@ -16,8 +16,8 @@ interface OpsConsolePageProps {
     scanFileName: string;
   };
   onInboundFormChange: (updater: (prev: any) => any) => void;
-  inboundMode: "text" | "scan";
-  onInboundModeChange: (mode: "text" | "scan") => void;
+  inboundMode: "text" | "scan" | "email";
+  onInboundModeChange: (mode: "text" | "scan" | "email") => void;
   scanFile: File | null;
   onScanFileChange: (file: File | null) => void;
   onExtractScan: () => Promise<void>;
@@ -55,7 +55,9 @@ export function OpsConsolePage({
   defaultMailboxId,
 }: OpsConsolePageProps) {
   const mailboxId = inboundForm.mailboxId || defaultMailboxId;
-  const canSubmit = mailboxId.length > 0 && (inboundMode === "text" || inboundForm.scanDraftId.length > 0);
+  const canSubmit =
+    mailboxId.length > 0 &&
+    (inboundMode === "text" || inboundMode === "email" || inboundForm.scanDraftId.length > 0);
 
   return (
     <div className="page-container">
@@ -102,6 +104,140 @@ export function OpsConsolePage({
               <span className="card-meta">Operator Scanner Station</span>
             </div>
 
+            {/* 1-Click Quick Scenario Presets */}
+            <div style={{ marginBottom: "1rem" }}>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-secondary, #71717a)", display: "block", marginBottom: "0.4rem", fontWeight: 600 }}>
+                ⚡ Quick Demo Presets (1-Click Fill):
+              </span>
+              {inboundMode === "email" ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Finanzamt Berlin <tax-notice@finanzamt-berlin.de>",
+                        envelopeSummary: "Formal Tax Inquiry — Corporate Tax Return Assessment",
+                        ocrText: "Sehr geehrte Damen und Herren,\n\nwir bitten um die Einreichung der fehlenden Unterlagen für das Geschäftsjahr 2025 bis zum 30. September.\n\nMit freundlichen Grüßen,\nFinanzamt Berlin",
+                      }))
+                    }
+                  >
+                    🏛️ Urgent Tax Notice Email (98% Priority)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "AWS Billing <no-reply-billing@amazon.com>",
+                        envelopeSummary: "Invoice Available: AWS Cloud Services - August 2026",
+                        ocrText: "Dear AWS Customer,\n\nYour monthly billing statement for August 2026 is now available. Total amount: $142.50 USD.\n\nAmazon Web Services",
+                      }))
+                    }
+                  >
+                    🧾 Cloud Invoice Email ($0.20 Unlock)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Marketing Deals <promo@weekly-deals-direct.com>",
+                        envelopeSummary: "Claim your 70% discount on office coffee machines!",
+                        ocrText: "Unbeatable promotion! Save 70% on premium espresso machines for your startup. Unsubscribe anytime.",
+                      }))
+                    }
+                  >
+                    📢 Marketing Spam (Auto-Ignored by AI)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Notary Office Frankfurt <legal@notar-frankfurt.de>",
+                        envelopeSummary: "Commercial Register Filing - Signature Required",
+                        ocrText: "Dear Directors,\n\nPlease review the enclosed commercial registry extract and confirm the authorized signatory change.\n\nNotariat Frankfurt",
+                      }))
+                    }
+                  >
+                    ⚖️ Legal Compliance Notice
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Finanzamt Berlin",
+                        envelopeSummary: "Musterstrasse 1, 10115 Berlin — Formal Tax Inquiry",
+                        ocrText: "Sehr geehrte Damen und Herren,\n\nwir bitten um die Einreichung der fehlenden Unterlagen für das Geschäftsjahr.\n\nMit freundlichen Grüßen,\nFinanzamt Berlin",
+                      }))
+                    }
+                  >
+                    🏛️ Tax Office (Urgent - 98% Priority)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Deutsche Bank AG",
+                        envelopeSummary: "Taunusanlage 12, 60325 Frankfurt — Account Verification",
+                        ocrText: "Dear Customer,\n\nPlease verify your corporate account details before the end of the quarter.\n\nBest regards,\nDeutsche Bank AG",
+                      }))
+                    }
+                  >
+                    🏦 Bank Notice (Priority)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "SuperStore Marketing GmbH",
+                        envelopeSummary: "Werbestrasse 99, 10117 Berlin — 50% Off Flyer",
+                        ocrText: "Special Offer! Get 50% off on all office supplies this week only. Visit our store or order online today!",
+                      }))
+                    }
+                  >
+                    📢 Marketing Flyer (Junk - Auto-Ignore)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    style={{ fontSize: "0.78rem", padding: "0.3rem 0.6rem" }}
+                    onClick={() =>
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Finanzamt Berlin",
+                        envelopeSummary: "Response to Acme Filing Agent: Confirmation Received",
+                        ocrText: "Sehr geehrte Damen und Herren,\n\nIhre Antwort vom heutigen Tage ist bei uns eingegangen und wird bearbeitet.\n\nMit freundlichen Grüßen,\nFinanzamt Berlin",
+                      }))
+                    }
+                  >
+                    ↩️ Reply from Tax Office
+                  </button>
+                </div>
+              )}
+            </div>
+
             <form
               className="stack-form"
               onSubmit={(e) => {
@@ -127,14 +263,14 @@ export function OpsConsolePage({
 
               {/* Mode Switcher */}
               <div className="form-field">
-                <label>Ingestion Mode</label>
+                <label>Ingestion Source</label>
                 <div className="segmented-toggle">
                   <button
                     type="button"
                     className={`segmented-btn ${inboundMode === "text" ? "is-active" : ""}`}
                     onClick={() => onInboundModeChange("text")}
                   >
-                    Direct Text Input
+                    Direct Letter Text
                   </button>
                   <button
                     type="button"
@@ -142,6 +278,21 @@ export function OpsConsolePage({
                     onClick={() => onInboundModeChange("scan")}
                   >
                     📷 Scan Image & Auto-OCR
+                  </button>
+                  <button
+                    type="button"
+                    className={`segmented-btn ${inboundMode === "email" ? "is-active" : ""}`}
+                    onClick={() => {
+                      onInboundModeChange("email");
+                      onInboundFormChange((prev: any) => ({
+                        ...prev,
+                        fromName: "Finanzamt Berlin <tax-notice@finanzamt-berlin.de>",
+                        envelopeSummary: "Formal Tax Inquiry — Corporate Tax Return Assessment",
+                        ocrText: "Sehr geehrte Damen und Herren,\n\nwir bitten um die Einreichung der fehlenden Unterlagen für das Geschäftsjahr 2025 bis zum 30. September.\n\nMit freundlichen Grüßen,\nFinanzamt Berlin",
+                      }));
+                    }}
+                  >
+                    📧 Gmail & Digital Inbox
                   </button>
                 </div>
               </div>
@@ -189,12 +340,22 @@ export function OpsConsolePage({
                 </div>
               )}
 
+              {/* Email Explanation Callout */}
+              {inboundMode === "email" && (
+                <div className="ocr-ready-callout" style={{ borderLeft: "3px solid #3b82f6" }}>
+                  <strong>📧 Live Gmail / Email Webhook Bridge Active</strong>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem" }}>
+                    Simulates incoming messages received via Gmail API, Google Cloud Pub/Sub, or incoming IMAP webhooks. The AI agent evaluates urgency, checks spending guardrails, and triggers non-custodial x402 payment!
+                  </p>
+                </div>
+              )}
+
               <div className="form-row-split">
                 <div className="form-field">
-                  <label>Sender Name / Institution</label>
+                  <label>{inboundMode === "email" ? "Sender Email / Organization" : "Sender Name / Institution"}</label>
                   <input
                     type="text"
-                    placeholder="e.g. City Tax Office"
+                    placeholder={inboundMode === "email" ? "e.g. billing@company.com" : "e.g. City Tax Office"}
                     value={inboundForm.fromName}
                     onChange={(e) =>
                       onInboundFormChange((prev: any) => ({
@@ -206,10 +367,10 @@ export function OpsConsolePage({
                   />
                 </div>
                 <div className="form-field">
-                  <label>Sender Address / Envelope Preview</label>
+                  <label>{inboundMode === "email" ? "Email Subject Line" : "Sender Address / Envelope Preview"}</label>
                   <input
                     type="text"
-                    placeholder="e.g. Musterstrasse 1, 10115 Berlin"
+                    placeholder={inboundMode === "email" ? "e.g. Urgent Tax Assessment Notice" : "e.g. Musterstrasse 1, 10115 Berlin"}
                     value={inboundForm.envelopeSummary}
                     onChange={(e) =>
                       onInboundFormChange((prev: any) => ({
@@ -223,10 +384,10 @@ export function OpsConsolePage({
               </div>
 
               <div className="form-field">
-                <label>Scanned Letter Text (OCR Output)</label>
+                <label>{inboundMode === "email" ? "Email Body & Attachment Content" : "Scanned Letter Text (OCR Output)"}</label>
                 <textarea
                   rows={6}
-                  placeholder="Extracted letter body text..."
+                  placeholder={inboundMode === "email" ? "Full email text or PDF attachment payload..." : "Extracted letter body text..."}
                   value={inboundForm.ocrText}
                   onChange={(e) =>
                     onInboundFormChange((prev: any) => ({
@@ -247,6 +408,8 @@ export function OpsConsolePage({
                   ? "Ingesting & Notifying Agent..."
                   : actionResults["ingest"] === "success"
                   ? "✓ Ingested & Webhook Dispatched!"
+                  : inboundMode === "email"
+                  ? "Ingest Incoming Email via Webhook"
                   : "Ingest Inbound Letter"}
               </button>
             </form>

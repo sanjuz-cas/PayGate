@@ -172,6 +172,42 @@ export const api = {
       body: JSON.stringify(input),
     });
   },
+  ingestEmail(input: {
+    mailboxId?: string;
+    from: string;
+    fromName?: string;
+    subject: string;
+    bodyText?: string;
+    bodyHtml?: string;
+    attachments?: Array<{ filename: string; text?: string }>;
+  }) {
+    return request<{ ok: true; letterId: string; decision: any }>(`${agentApiUrl}/actions/ingest-email`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  },
+  ingestServiceEmail(input: {
+    mailboxId: string;
+    from: string;
+    fromName?: string;
+    subject: string;
+    bodyText?: string;
+    bodyHtml?: string;
+    attachments?: Array<{ filename: string; text?: string }>;
+  }) {
+    return request<{ letterId: string }>(`${serviceApiUrl}/internal/inbound-emails`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${adminUiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  },
   extractInboundLetterFromScan(input: {
     mailboxId: string;
     scan: File;
