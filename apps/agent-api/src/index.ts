@@ -32,6 +32,7 @@ import {
 import { loadAgentEnv } from "./lib/env.js";
 import { createId, nowIso } from "./lib/ids.js";
 import { createJuicebagClient } from "./lib/juicebag-client.js";
+import { runAgentBrain, formatStepAsSSEEvent, type AgentBrainRequest } from "./lib/agent-brain.js";
 import { buildAgentState, parseLegalIdentity } from "./lib/state.js";
 import { verifyWebhookSignature } from "./lib/webhook.js";
 import {
@@ -1072,8 +1073,8 @@ app.post("/actions/agent-chat", async (c) => {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
-  if (!env.GROQ_API_KEY) {
-    return c.json({ error: "GROQ_API_KEY not configured on the server" }, 503);
+  if (!env.OPENAI_API_KEY && !env.GROQ_API_KEY) {
+    return c.json({ error: "OPENAI_API_KEY or GROQ_API_KEY not configured on the server" }, 503);
   }
 
   const { runAgentBrain } = await import("./lib/agent-brain.js");
@@ -1119,6 +1120,175 @@ app.post("/actions/agent-chat", async (c) => {
       Connection: "keep-alive",
     },
   });
+});
+
+// ─── Kaam Citizen Task Orchestrator (Build What Moves India) ───────────
+
+app.post("/actions/kaam-task", async (c) => {
+  console.log("[agent] POST /actions/kaam-task");
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const schema = z.object({
+    prompt: z.string().min(1).default("Renew my passport. My address has changed."),
+    syntheticDocument: z
+      .object({
+        name: z.string().default("Arjun Menon"),
+        address: z.string().default("12 Lake View Road, Kochi, Kerala 682001"),
+        date: z.string().default("15 August 2026"),
+        rawText: z.string().optional(),
+      })
+      .optional(),
+  });
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  const { executeTool } = await import("./lib/agent-brain.js");
+
+  const taskId = `KAAM-TASK-${Date.now().toString(36).toUpperCase()}`;
+  const steps: any[] = [];
+  let totalSpentInr = 0;
+
+  // Step 1: Requirements Lookup
+  const reqResult = await executeTool("passport_requirement_lookup", { serviceType: "reissue_address_change" }, env, db);
+  steps.push({
+    step: "passport_requirement_lookup",
+    priceInr: "₹0.10",
+    result: reqResult.result,
+    txid: reqResult.txid,
+    success: reqResult.success,
+  });
+  if (reqResult.success) totalSpentInr += 0.10;
+
+  // Step 2: Document Verification
+  const docText = parsed.data.syntheticDocument?.rawText || `Arjun Menon\n12 Lake View Road\nKochi, Kerala 682001\nDate: 15 August 2026\nElectricity Consumption Bill - Kerala State Electricity Board`;
+  const verifyResult = await executeTool("document_verification", { documentType: "electricity_bill", rawText: docText }, env, db);
+  steps.push({
+    step: "document_verification",
+    priceInr: "₹0.25",
+    result: verifyResult.result,
+    txid: verifyResult.txid,
+    success: verifyResult.success,
+  });
+  if (verifyResult.success) totalSpentInr += 0.25;
+
+  // Step 3: Form Assistance
+  const formResult = await executeTool(
+    "passport_form_assistance",
+    {
+      applicantName: parsed.data.syntheticDocument?.name || "Arjun Menon",
+      currentAddress: parsed.data.syntheticDocument?.address || "12 Lake View Road, Kochi, Kerala 682001",
+      verifiedDocumentType: "Electricity Bill — Verified",
+    },
+    env,
+    db,
+  );
+  steps.push({
+    step: "passport_form_assistance",
+    priceInr: "₹0.20",
+    result: formResult.result,
+    txid: formResult.txid,
+    success: formResult.success,
+  });
+  if (formResult.success) totalSpentInr += 0.20;
+
+  await events.publish({
+    type: "kaam.task_completed",
+    message: `Completed Kaam task ${taskId} (Passport Reissue for address change). Total: ₹${totalSpentInr.toFixed(2)}`,
+  });
+
+  return c.json({
+    taskId,
+    userPrompt: parsed.data.prompt,
+    interpretedGoal: "Passport reissue + change of current address",
+    taskBudgetInr: 2.00,
+    totalSpentInr,
+    steps,
+    status: "ready_for_review",
+    outcomeSummary: {
+      requirementsChecked: true,
+      addressVerified: true,
+      formPrepared: true,
+      totalPaidInr: `₹${totalSpentInr.toFixed(2)}`,
+      budgetRemainingInr: `₹${(2.00 - totalSpentInr).toFixed(2)}`,
+    },
+  });
+});
+// Kaam SSE streaming endpoint
+app.get("/actions/kaam/stream", async (c) => {
+  console.log("[agent] GET /actions/kaam/stream");
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const schema = z.object({
+    taskDescription: z.string().min(1).default("Renew my passport. My address has changed."),
+  });
+  const query = c.req.query();
+  const parsed = schema.safeParse(query);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      function send(eventType: string, data: unknown) {
+        const line = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+        controller.enqueue(encoder.encode(line));
+      }
+
+      send("started", { message: "Kaam stream started", taskDescription: parsed.data.taskDescription });
+
+      try {
+        const result = await runAgentBrain({ taskDescription: parsed.data.taskDescription }, env, db);
+        for (const step of result.steps) {
+          send("step_started", step);
+          send("step_completed", step);
+        }
+        send("final_answer", {
+          finalAnswer: result.finalAnswer,
+          totalCostUsd: result.totalCostUsd,
+          allTxids: result.allTxids,
+        });
+      } catch (err) {
+        console.error("[kaam/stream] Error:", err);
+        send("error", { message: err instanceof Error ? err.message : String(err) });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+});
+
+// Kaam decision endpoint
+app.post("/actions/kaam/decision", async (c) => {
+  console.log("[agent] POST /actions/kaam/decision");
+  const unauthorized = requireUiToken(c);
+  if (unauthorized) return unauthorized;
+
+  const schema = z.object({
+    decision: z.string(),
+    stepNumber: z.number().optional(),
+  });
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  await events.publish({
+    type: "kaam.decision",
+    message: `Decision received: ${parsed.data.decision} (step ${parsed.data.stepNumber ?? "N/A"})`,
+  });
+
+  return c.json({ ok: true });
 });
 
 serve(

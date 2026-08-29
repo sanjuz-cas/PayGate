@@ -291,6 +291,103 @@ export const ecoStatsSchema = z.object({
   recentContributions: z.array(ecoContributionSchema),
 });
 
+// ─── Kaam Capability Schemas (Build What Moves India) ──────────────────────
+
+export const passportRequirementRequestSchema = z.object({
+  serviceType: z.literal("reissue_address_change").default("reissue_address_change"),
+  currentAddressDifferent: z.boolean().default(true),
+});
+
+export const passportRequirementResponseSchema = z.object({
+  serviceType: z.string(),
+  summary: z.string(),
+  mandatoryDocumentRequired: z.string(),
+  acceptableProofTypes: z.array(z.string()),
+  disclaimer: z.string(),
+  estimatedFeeInr: z.number(),
+});
+
+export const documentVerificationRequestSchema = z.object({
+  documentType: z.string().default("electricity_bill"),
+  rawText: z.string(),
+  expectedName: z.string().optional(),
+  expectedCity: z.string().optional(),
+  expectedPostalCode: z.string().optional(),
+});
+
+export const documentVerificationResponseSchema = z.object({
+  valid: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  detectedName: z.string(),
+  detectedAddress: z.string(),
+  detectedDate: z.string(),
+  readable: z.boolean(),
+  addressInfoPresent: z.boolean(),
+  issues: z.array(z.string()),
+  capabilityUsed: z.string(),
+  reasonForSelection: z.string(),
+});
+
+export const passportFormAssistRequestSchema = z.object({
+  applicantName: z.string(),
+  serviceType: z.string(),
+  reissueReason: z.string(),
+  currentAddress: z.string(),
+  verifiedDocumentType: z.string(),
+  verifiedDocumentDetails: z.string(),
+});
+
+export const passportFormAssistResponseSchema = z.object({
+  applicationId: z.string(),
+  status: z.literal("ready_for_review"),
+  serviceTypeDisplay: z.string(),
+  reasonDisplay: z.string(),
+  applicantName: z.string(),
+  currentAddressFormatted: z.string(),
+  supportingDocumentDisplay: z.string(),
+  preparedAt: z.string(),
+  nextStepInstructions: z.string(),
+  disclaimer: z.string(),
+});
+
+export const kaamCapabilityExecutionRecordSchema = z.object({
+  capabilityName: z.string(),
+  displayName: z.string(),
+  priceInr: z.string(),
+  priceUsdc: z.number(),
+  status: z.enum(["discovering", "policy_checking", "approved", "executing", "completed", "failed", "blocked"]),
+  txid: z.string().optional(),
+  executedAt: z.string(),
+  resultSummary: z.string(),
+  reasonSelected: z.string(),
+});
+
+export const kaamTaskStateSchema = z.object({
+  taskId: z.string(),
+  userPrompt: z.string(),
+  interpretedGoal: z.string(),
+  currentStep: z.enum([
+    "idle",
+    "understanding",
+    "checking_requirements",
+    "requirements_ready",
+    "selecting_document",
+    "verifying_document",
+    "document_verified",
+    "preparing_form",
+    "ready_for_review",
+    "error",
+  ]),
+  taskBudgetInr: z.number().default(2.0),
+  totalSpentInr: z.number().default(0),
+  requirements: passportRequirementResponseSchema.optional(),
+  verificationResult: documentVerificationResponseSchema.optional(),
+  formDraft: passportFormAssistResponseSchema.optional(),
+  capabilitiesUsed: z.array(kaamCapabilityExecutionRecordSchema).default([]),
+  error: z.string().optional(),
+  errorCode: z.enum(["BUDGET_EXCEEDED", "VERIFICATION_FAILED", "CAPABILITY_UNAVAILABLE"]).optional(),
+});
+
 export type Address = z.infer<typeof addressSchema>;
 export type AgentRegistrationInput = z.infer<typeof agentRegistrationSchema>;
 export type AgentSendLetterInput = z.infer<typeof agentSendLetterSchema>;
@@ -313,3 +410,12 @@ export type EcoStats = z.infer<typeof ecoStatsSchema>;
 export type InternalInboundLetterScanExtractResponse = z.infer<
   typeof internalInboundLetterScanExtractResponseSchema
 >;
+
+export type PassportRequirementRequest = z.infer<typeof passportRequirementRequestSchema>;
+export type PassportRequirementResponse = z.infer<typeof passportRequirementResponseSchema>;
+export type DocumentVerificationRequest = z.infer<typeof documentVerificationRequestSchema>;
+export type DocumentVerificationResponse = z.infer<typeof documentVerificationResponseSchema>;
+export type PassportFormAssistRequest = z.infer<typeof passportFormAssistRequestSchema>;
+export type PassportFormAssistResponse = z.infer<typeof passportFormAssistResponseSchema>;
+export type KaamCapabilityExecutionRecord = z.infer<typeof kaamCapabilityExecutionRecordSchema>;
+export type KaamTaskState = z.infer<typeof kaamTaskStateSchema>;

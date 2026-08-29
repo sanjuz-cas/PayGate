@@ -6,7 +6,7 @@ import {
 import { useWalletConnect } from "../wallet/WalletConnectContext";
 import { NavEcoTreeBadge } from "./NavEcoTreeBadge";
 
-export type NavPage = "hero" | "agent" | "send" | "guardrails" | "ops";
+export type NavPage = "kaam" | "hero" | "agent" | "send" | "guardrails" | "ops";
 
 interface NavigationProps {
   activePage: string;
@@ -36,6 +36,7 @@ export function Navigation({
   const wallet = useWalletConnect();
 
   const pageTitles: Record<string, string> = {
+    kaam: "Kaam Citizen App",
     hero: "Overview",
     agent: "Overview",
     send: "Send Letter",
@@ -49,6 +50,16 @@ export function Navigation({
     <header className="app-nav-header">
       {/* Left: Brand Logo & Context Breadcrumb */}
       <div className="nav-brand-wrap">
+        <button
+          type="button"
+          onClick={() => onSelectPage("kaam")}
+          className="nav-chat-pill-btn"
+          style={{ background: "linear-gradient(135deg, #6366f1, #3b82f6)", color: "white", fontWeight: 700 }}
+          title="Switch to Kaam Citizen Experience"
+        >
+          ← Kaam Citizen App
+        </button>
+
         <div
           className="nav-brand-logo"
           onClick={() => onSelectPage("hero")}

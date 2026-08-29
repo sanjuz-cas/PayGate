@@ -318,4 +318,106 @@ export const api = {
     }
     return response;
   },
+
+  // ─── Kaam API Methods (Build What Moves India) ──────────────────────────
+
+  executeKaamTask(input: {
+    prompt?: string;
+    syntheticDocument?: {
+      name: string;
+      address: string;
+      date: string;
+      rawText?: string;
+    };
+  }) {
+    return request<{
+      taskId: string;
+      userPrompt: string;
+      interpretedGoal: string;
+      taskBudgetInr: number;
+      totalSpentInr: number;
+      steps: any[];
+      status: string;
+      outcomeSummary: {
+        requirementsChecked: boolean;
+        addressVerified: boolean;
+        formPrepared: boolean;
+        totalPaidInr: string;
+        budgetRemainingInr: string;
+      };
+    }>(`${agentApiUrl}/actions/kaam-task`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${agentUiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  },
+
+  getPassportRequirements(serviceType: string = "reissue_address_change") {
+    return request<import("@juicebag-mail/shared").PassportRequirementResponse>(
+      `${serviceApiUrl}/v1/passport-rules`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ serviceType }),
+      },
+    );
+  },
+
+  verifyDocument(input: {
+    documentType: string;
+    rawText: string;
+    expectedName?: string;
+    expectedCity?: string;
+    expectedPostalCode?: string;
+  }) {
+    return request<import("@juicebag-mail/shared").DocumentVerificationResponse>(
+      `${serviceApiUrl}/v1/verify-document`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
+  passportFormAssist(input: {
+    applicantName: string;
+    serviceType?: string;
+    reissueReason?: string;
+    currentAddress: string;
+    verifiedDocumentType?: string;
+    verifiedDocumentDetails?: string;
+  }) {
+    return request<import("@juicebag-mail/shared").PassportFormAssistResponse>(
+      `${serviceApiUrl}/v1/passport-form-assist`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
+  getServiceRegistry() {
+    return request<{
+      services: Array<{
+        name: string;
+        description: string;
+        endpoint: string;
+        price: number;
+        priceInr?: number;
+        currency: string;
+        network: string;
+      }>;
+    }>(`${serviceApiUrl}/v1/service-registry`);
+  },
 };

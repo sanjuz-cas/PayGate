@@ -30,6 +30,7 @@ const POSTAL_PATTERNS: Record<string, RegExp> = {
   CH: /^\d{4}$/,      // Switzerland: 4 digits
   AU: /^\d{4}$/,      // Australia: 4 digits
   CA: /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i,  // Canada: A1A 1A1 format
+  IN: /^\d{6}$/,      // India: 6 digits PIN code
 };
 
 // Valid ISO 3166-1 alpha-2 country codes (subset for demo)

@@ -773,10 +773,139 @@ export function registerPublicRoutes(
     return c.json({ ok: true });
   });
 
+  // ─── Kaam Capabilities (Build What Moves India) ──────────────────────────
+
+  // 1. Passport Requirement Lookup Endpoint
+  app.get("/v1/passport-rules", (c) => {
+    return c.json({
+      serviceType: "reissue_address_change",
+      summary: "Passport reissue requested due to change in current residential address.",
+      mandatoryDocumentRequired: "Proof of Current Address is mandatory because your current residence differs from the address printed on your existing passport.",
+      acceptableProofTypes: [
+        "Electricity Bill (within last 3 months)",
+        "Bank Account Statement / Passbook",
+        "Registered Rent Agreement",
+        "Water Bill",
+        "Telephone / Broadband Bill",
+      ],
+      disclaimer: "Demo guidance based on synthetic rules. Not an official government determination.",
+      estimatedFeeInr: 0.10,
+    });
+  });
+
+  app.post("/v1/passport-rules", async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    return c.json({
+      serviceType: body.serviceType ?? "reissue_address_change",
+      summary: "Passport reissue requested due to change in current residential address.",
+      mandatoryDocumentRequired: "Proof of Current Address is mandatory because your current residence differs from the address printed on your existing passport.",
+      acceptableProofTypes: [
+        "Electricity Bill (within last 3 months)",
+        "Bank Account Statement / Passbook",
+        "Registered Rent Agreement",
+        "Water Bill",
+        "Telephone / Broadband Bill",
+      ],
+      disclaimer: "Demo guidance based on synthetic rules. Not an official government determination.",
+      estimatedFeeInr: 0.10,
+    });
+  });
+
+  // 2. Document Verification Endpoint (Synthetic address document check)
+  app.post("/v1/verify-document", async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const rawText = (body.rawText ?? "") as string;
+    const documentType = (body.documentType ?? "electricity_bill") as string;
+
+    // Synthetic parsing of document
+    const hasName = /arjun\s+menon/i.test(rawText) || /name/i.test(rawText);
+    const hasAddress = /kochi|kerala|lake\s+view/i.test(rawText) || rawText.length > 20;
+    const hasPincode = /682001|\d{6}/.test(rawText);
+    const isReadable = rawText.trim().length > 10;
+
+    const detectedName = hasName ? "Arjun Menon" : "Unknown Applicant";
+    const detectedAddress = hasAddress
+      ? "12 Lake View Road, Kochi, Kerala 682001"
+      : "Address details detected in document";
+    const detectedDate = "15 August 2026";
+
+    const issues: string[] = [];
+    if (!hasName) issues.push("Applicant name could not be definitively extracted");
+    if (!hasPincode) issues.push("Postal PIN code is unverified or missing");
+
+    const valid = issues.length === 0 || (isReadable && hasAddress);
+    const confidence = valid ? 0.98 : 0.65;
+
+    return c.json({
+      valid,
+      confidence,
+      detectedName,
+      detectedAddress,
+      detectedDate,
+      readable: isReadable,
+      addressInfoPresent: hasAddress && hasPincode,
+      issues,
+      capabilityUsed: "document_verification",
+      reasonForSelection: "Kaam selected DocumentCheck because the current task required address-document verification.",
+    });
+  });
+
+  // 3. Passport Form Assistant Endpoint
+  app.post("/v1/passport-form-assist", async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const applicantName = (body.applicantName || "Arjun Menon") as string;
+    const currentAddress = (body.currentAddress || "12 Lake View Road, Kochi, Kerala 682001") as string;
+    const serviceType = (body.serviceType || "Passport Reissue") as string;
+    const reissueReason = (body.reissueReason || "Change of Address") as string;
+    const verifiedDoc = (body.verifiedDocumentType || "Electricity Bill — Verified") as string;
+
+    const applicationId = `KAAM-PASSPORT-${Date.now().toString(36).toUpperCase()}`;
+
+    return c.json({
+      applicationId,
+      status: "ready_for_review",
+      serviceTypeDisplay: serviceType,
+      reasonDisplay: reissueReason,
+      applicantName,
+      currentAddressFormatted: currentAddress,
+      supportingDocumentDisplay: verifiedDoc,
+      preparedAt: nowIso(),
+      nextStepInstructions: "Review the prepared application summary and submit through the official Passport Seva process.",
+      disclaimer: "Kaam does not interact with or submit information to live government systems. Synthetic demonstration only.",
+    });
+  });
+
   // Service Registry endpoint for agent discovery
   app.get("/v1/service-registry", (c) =>
     c.json({
       services: [
+        {
+          name: "passport_requirement_lookup",
+          description: "Determine official synthetic requirements and acceptable documents for passport reissue and address change",
+          endpoint: `${env.SERVICE_BASE_URL}/v1/passport-rules`,
+          price: 0.0012,
+          priceInr: 0.10,
+          currency: "USDC",
+          network: "algorand:testnet",
+        },
+        {
+          name: "document_verification",
+          description: "Extract, inspect and verify address proof document validity and entity matching",
+          endpoint: `${env.SERVICE_BASE_URL}/v1/verify-document`,
+          price: 0.003,
+          priceInr: 0.25,
+          currency: "USDC",
+          network: "algorand:testnet",
+        },
+        {
+          name: "passport_form_assistance",
+          description: "Prepare and structure synthetic passport reissue application draft",
+          endpoint: `${env.SERVICE_BASE_URL}/v1/passport-form-assist`,
+          price: 0.0025,
+          priceInr: 0.20,
+          currency: "USDC",
+          network: "algorand:testnet",
+        },
         {
           name: "address-verification",
           description: "Verify physical address format and validity before sending mail",

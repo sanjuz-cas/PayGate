@@ -48,6 +48,9 @@ const envSchema = z.object({
     .default(true),
   ANTHROPIC_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  LLM_PROVIDER: z.enum(["auto", "openai", "groq", "anthropic"]).default("auto"),
 });
 
 export type AgentEnv = z.infer<typeof envSchema> & {
